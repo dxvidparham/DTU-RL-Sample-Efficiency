@@ -14,7 +14,9 @@ and a policy function π parameterized by ϕ
 
 
 class ValueNetwork(nn.Module):
-    """The ValueNetwork provides feedback to our PolicyNetwork if certain states are valueable or not."""
+    """
+    The ValueNetwork provides feedback to our PolicyNetwork if certain states are valueable or not.
+    """
 
     def __init__(
         self,
@@ -43,7 +45,9 @@ class ValueNetwork(nn.Module):
 
 
 class SoftQNetwork(nn.Module):
-    """The SoftQNetwork is responsible for evaluating actions taken by the PolicyNet"""
+    """
+    The SoftQNetwork is responsible for evaluating actions taken by the PolicyNet
+    """
 
     def __init__(
         self,
