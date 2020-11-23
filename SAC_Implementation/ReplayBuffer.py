@@ -15,7 +15,7 @@ class ReplayBuffer(object):
 
         return self.capacity if self.full else self.idx
 
-    def add(self, obs, action, reward, next_obs, done, done_no_max):
+    def add(self, obs, action, reward, next_obs, done, done_no_max=0):
         self.memory[self.idx] = np.array([obs, action, reward, next_obs, not done, not done_no_max])
         self.idx = (self.idx + 1) % self.capacity
 

@@ -12,7 +12,7 @@ a soft Q-function Q parameterized by θ,
 and a policy function π parameterized by ϕ
 """
 
-
+# ACTOR
 class ValueNetwork(nn.Module):
     """
     The ValueNetwork provides feedback to our PolicyNetwork if certain states are valueable or not.
@@ -43,7 +43,7 @@ class ValueNetwork(nn.Module):
 
         return state_value_output
 
-
+# CRITIC
 class SoftQNetwork(nn.Module):
     """
     The SoftQNetwork is responsible for evaluating actions taken by the PolicyNet
@@ -51,7 +51,7 @@ class SoftQNetwork(nn.Module):
 
     def __init__(
         self,
-        input_dim,
+        state_dim,
         action_dim,
         hidden_dim,
         lr_critic,
@@ -59,7 +59,7 @@ class SoftQNetwork(nn.Module):
         init_w=3e-3,
     ):
         super(SoftQNetwork, self).__init__()
-        self.linear1 = nn.Linear(input_dim + action_dim, hidden_dim)
+        self.linear1 = nn.Linear(state_dim + action_dim, hidden_dim)
         self.linear2 = nn.Linear(hidden_dim, hidden_dim)
         self.linear3 = nn.Linear(hidden_dim, output_dim)
 
@@ -75,7 +75,7 @@ class SoftQNetwork(nn.Module):
         action_value_output = self.linear3(action_value)
         return action_value_output
 
-
+# POLICY
 class PolicyNetwork(nn.Module):
     def __init__(
         self,

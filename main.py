@@ -30,7 +30,19 @@ parser.add_argument('--hidden_dim',
                     # TODO Add more meaningful description
                     help='Hidden Dimension for something')
 
-parser.add_argument('--learning_rate',
+parser.add_argument('--lr-policy',
+                    type=float,
+                    default=3e-4,
+                    # TODO Add more meaningful description
+                    help='Learning Rate')
+
+parser.add_argument('--lr-actor',
+                    type=float,
+                    default=3e-4,
+                    # TODO Add more meaningful description
+                    help='Learning Rate')
+
+parser.add_argument('--lr-critic',
                     type=float,
                     default=3e-4,
                     # TODO Add more meaningful description

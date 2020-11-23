@@ -8,13 +8,13 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 import json
-import gym
-from gym import wrappers
 
 import logging
 
 import dmc2gym
 import log_helper
+from SAC_Implementation.ReplayBuffer import ReplayBuffer
+from SAC_Implementation.networks import ValueNetwork, SoftQNetwork, PolicyNetwork
 
 
 def show_replay():
@@ -46,6 +46,16 @@ def get_numpy(x):
     return x.data.numpy()
 
 
+def one_hot(l):
+    def one_hot2(i):
+        """
+        One-hot encoder for the states
+        """
+        a = np.zeros((len(i), l))
+        a[range(len(i)), i] = 1
+        return a
+    return one_hot2
+
 ##
 
 def run_sac(hyperparameter_space: dict) -> None:
@@ -58,7 +68,7 @@ def run_sac(hyperparameter_space: dict) -> None:
 
     ##
     environment_name = hyperparameter_space.get('env_name')
-    #env = gym.make(environment_name)  # Create environment
+    # TODO Update
     env = dmc2gym.make(domain_name="point_mass", task_name="easy", seed=1)
 
     s = env.reset()
@@ -68,9 +78,6 @@ def run_sac(hyperparameter_space: dict) -> None:
     ##
     # Hyperparameters
     action_dim = env.action_space.shape[0]
-    # TODO Recheck change
-    #  I changed it to this line due to an issue with the .shape[0] function
-    #  action_dim = env.action_space.shape[0]
     state_dim = env.observation_space.shape[0]
 
     ##
@@ -78,7 +85,9 @@ def run_sac(hyperparameter_space: dict) -> None:
     logging.debug(f'action shape: {action_dim}')
 
     hidden_dim = hyperparameter_space.get('hidden_dim')
-    learning_rate = hyperparameter_space.get('learning-rate')  # you know this by now
+    lr_critic = hyperparameter_space.get('lr_critic')  # you know this by now
+    lr_actor = hyperparameter_space.get('lr_actor')  # you know this by now
+    lr_policy = hyperparameter_space.get('lr_policy')  # you know this by now
     discount_factor = hyperparameter_space.get('discount_factor')  # reward discount factor (gamma), 1.0 = no discount
     replay_buffer = hyperparameter_space.get('replay_buffer')
     n_hidden_layer = hyperparameter_space.get('n_hidden_layer')
@@ -92,10 +101,32 @@ def run_sac(hyperparameter_space: dict) -> None:
     log_helper.print_dict(hyperparameter_space, "Hyperparameter")
     log_helper.print_big_log("Start Training")
 
-    for _episode in range(episodes):
+    # Initilization of the Networks
+
+    #### Actor
+    # The actor tries to mimic the Environment and tries to find the expected reward using the next state and the action (from the policy network)
+
+    print("lr_actor", lr_actor)
+    actor = ValueNetwork(state_dim, hidden_dim, lr_actor)
+
+    soft_q1 = SoftQNetwork(state_dim, action_dim, hidden_dim, lr_critic)
+    soft_q2 = SoftQNetwork(state_dim, action_dim, hidden_dim, lr_critic)
+
+    policy = PolicyNetwork(state_dim, action_dim, hidden_dim, lr_policy)
+    buffer = ReplayBuffer(replay_buffer)
+
+
+    # TODO put in hyperparameter for episode
+    for _episode in range(1):
         logging.debug(f"Episode {_episode}")
 
         # Observe state and action
+        current_state = env.reset()
+        action = policy(torch.Tensor(current_state))
+
+        # Do the next step
+        s1, r, done, _ = env.step(np.array(action[0].detach()))
+        buffer.add(obs=current_state, action=action, reward=r, next_obs=s1, done=done)
 
 
         # Execute a in the environment
