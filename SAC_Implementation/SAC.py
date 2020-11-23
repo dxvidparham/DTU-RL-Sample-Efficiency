@@ -59,9 +59,7 @@ def run_sac(hyperparameter_space: dict) -> None:
     ##
     environment_name = hyperparameter_space.get('env_name')
     #env = gym.make(environment_name)  # Create environment
-    # env = dmc2gym.make(domain_name="point_mass", task_name="easy", seed=1)
-    from dm_control import suite
-    env = suite.load('cartpole', 'swingup')
+    env = dmc2gym.make(domain_name="point_mass", task_name="easy", seed=1)
 
     s = env.reset()
     a = env.action_space.sample()
@@ -69,7 +67,7 @@ def run_sac(hyperparameter_space: dict) -> None:
     logging.debug(f'sample action:{a}')
     ##
     # Hyperparameters
-    action_dim = env.action_space.n
+    action_dim = env.action_space.shape[0]
     # TODO Recheck change
     #  I changed it to this line due to an issue with the .shape[0] function
     #  action_dim = env.action_space.shape[0]
@@ -97,6 +95,12 @@ def run_sac(hyperparameter_space: dict) -> None:
     for _episode in range(episodes):
         logging.debug(f"Episode {_episode}")
 
+        # Observe state and action
+
+
+        # Execute a in the environment
+        # Check if it is terminal -> Save in Replay Buffer
+        # ---> Reset if
 
     """import gym
     env = gym.make("Taxi-v3")
