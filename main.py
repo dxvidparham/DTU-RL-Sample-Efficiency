@@ -54,7 +54,7 @@ parser.add_argument('--discount-factor',
                     # TODO Add more meaningful description
                     help='Discount Factor')
 
-parser.add_argument('--replay_buffer',
+parser.add_argument('--replay_buffer_size',
                     default=10**6,
                     type=float,
                     # TODO Add more meaningful description
@@ -77,9 +77,26 @@ parser.add_argument('--target_smoothing',
                     type=float,
                     # TODO Add more meaningful description
                     help='')
+parser.add_argument('--sample_batch_size',
+                    default=1,
+                    type=int,
+                    # TODO Add more meaningful description
+                    help='')
+
+parser.add_argument('--gamma',
+                    default=.5,
+                    type=float,
+                    # TODO Add more meaningful description
+                    help='Weight of further values.')
 
 parser.add_argument('--val_freq',
                     default=50,
+                    type=float,
+                    # TODO Add more meaningful description
+                    help='Validation Frequency')
+
+parser.add_argument('--alpha',
+                    default=0.5,
                     type=float,
                     # TODO Add more meaningful description
                     help='Validation Frequency')
@@ -90,11 +107,18 @@ parser.add_argument('--env_name',
                     # TODO Add more meaningful description
                     help='Environment Name')
 
+# TODO Set higher episode times
 parser.add_argument('--episodes',
-                    default=10,
+                    default=1,
                     type=int,
                     # TODO Add more meaningful description
                     help='Episodes for the Training')
+
+parser.add_argument('--update_episodes',
+                    default=1,
+                    type=int,
+                    # TODO Add more meaningful description
+                    help='Update Episodes for the Training (Offline-Policy-learning)')
 
 args = vars(parser.parse_args())
 

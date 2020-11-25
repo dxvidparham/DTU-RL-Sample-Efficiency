@@ -12,6 +12,8 @@ import json
 import logging
 
 import dmc2gym
+from torch.optim.adam import Adam
+
 import log_helper
 from SAC_Implementation.ReplayBuffer import ReplayBuffer
 from SAC_Implementation.networks import ValueNetwork, SoftQNetwork, PolicyNetwork
@@ -84,50 +86,108 @@ def run_sac(hyperparameter_space: dict) -> None:
     logging.debug(f'state shape: {state_dim}')
     logging.debug(f'action shape: {action_dim}')
 
+    episodes = hyperparameter_space.get('episodes')
+    sample_batch_size = hyperparameter_space.get('episodes')
+
+    gamma = hyperparameter_space.get('gamma')
+
+    update_episodes = hyperparameter_space.get('update_episodes')
     hidden_dim = hyperparameter_space.get('hidden_dim')
     lr_critic = hyperparameter_space.get('lr_critic')  # you know this by now
     lr_actor = hyperparameter_space.get('lr_actor')  # you know this by now
     lr_policy = hyperparameter_space.get('lr_policy')  # you know this by now
     discount_factor = hyperparameter_space.get('discount_factor')  # reward discount factor (gamma), 1.0 = no discount
-    replay_buffer = hyperparameter_space.get('replay_buffer')
+    replay_buffer_size = hyperparameter_space.get('replay_buffer_size')
     n_hidden_layer = hyperparameter_space.get('n_hidden_layer')
     n_hidden = hyperparameter_space.get('n_hidden')
     target_smoothing = hyperparameter_space.get('target_smoothing')
     val_freq = hyperparameter_space.get('val_freq')  # validation frequency
     episodes = hyperparameter_space.get('episodes')
+    alpha = hyperparameter_space.get('alpha')
     # optimizer = optim.Adam(nn.parameters(), lr=learning_rate)
 
     # Print the hyperparameters
     log_helper.print_dict(hyperparameter_space, "Hyperparameter")
     log_helper.print_big_log("Start Training")
 
-    # Initilization of the Networks
+    # Initialization of the Networks
+    # ### Actor The actor tries to mimic the Environment and tries to find the expected reward using the next state
+    # and the action (from the policy network)
 
-    #### Actor
-    # The actor tries to mimic the Environment and tries to find the expected reward using the next state and the action (from the policy network)
-
-    print("lr_actor", lr_actor)
-    actor = ValueNetwork(state_dim, hidden_dim, lr_actor)
-
+    # We need to networks: 1 for the value function first
     soft_q1 = SoftQNetwork(state_dim, action_dim, hidden_dim, lr_critic)
     soft_q2 = SoftQNetwork(state_dim, action_dim, hidden_dim, lr_critic)
 
+    # Then another one for calculating the targets
+    soft_q1_targets = SoftQNetwork(state_dim, action_dim, hidden_dim, lr_critic)
+    soft_q2_targets = SoftQNetwork(state_dim, action_dim, hidden_dim, lr_critic)
+
     policy = PolicyNetwork(state_dim, action_dim, hidden_dim, lr_policy)
-    buffer = ReplayBuffer(replay_buffer)
 
+    buffer = ReplayBuffer(state_dim, action_dim,
+                          replay_buffer_size)
 
-    # TODO put in hyperparameter for episode
-    for _episode in range(1):
-        logging.debug(f"Episode {_episode}")
+    for _episode in range(episodes):
+        logging.debug(f"Episode {_episode+1}")
 
         # Observe state and action
         current_state = env.reset()
-        action = policy(torch.Tensor(current_state))
+        # The policy network returns the mean and the std of the action. However, we only need an action to start
+        action_mean, _ = policy(torch.Tensor(current_state))
 
         # Do the next step
-        s1, r, done, _ = env.step(np.array(action[0].detach()))
-        buffer.add(obs=current_state, action=action, reward=r, next_obs=s1, done=done)
+        s1, r, done, _ = env.step(np.array(action_mean.detach()))
+        buffer.add(obs=current_state, action=action_mean.detach(), reward=r, next_obs=s1, done=done)
 
+        if bool(done):
+            break
+
+        for _up_epi in range(update_episodes):
+            logging.debug(f"Episode {_episode+1} | {_up_epi+1}")
+
+            # Sample from Replay buffer
+            state, action, reward, new_state, done, _ = buffer.sample(batch_size=sample_batch_size)
+
+            # Computation of targets
+            # Here we are using 2 different Q Networks and afterwards chose the lower reward as regulator.
+            y_hat_q1 = soft_q1_targets(state.float(), action.float())
+            y_hat_q2 = soft_q2_targets(state.float(), action.float())
+            y_hat_q = torch.min(y_hat_q1, y_hat_q2)
+
+            # Sample the action for the new state using the policy network
+            action, action_entropy = policy(torch.Tensor(new_state))
+
+            # We calculate the estimated reward for the next state
+            # TODO CHeck the average (We take the mean of the entropy right now)
+            y_hat = reward + gamma*(1-done) * (y_hat_q - torch.mean(action_entropy))
+
+            ## Forward step of the Actor network
+            # Q1 Network
+            q1_forward = soft_q1(state.float(), action.float())
+            q1_loss = F.mse_loss(q1_forward.float(), y_hat.float())
+            q1_loss.backward(retain_graph=True)
+            soft_q1.optimizer.step()
+
+            # Q2 Network
+            q2_forward = soft_q2(state.float(), action.float())
+            q2_loss = F.mse_loss(q2_forward.float(), y_hat.float().float())
+            q2_loss.backward()
+            soft_q2.optimizer.step()
+
+            # Update Policy Network
+            action_new, action_entropy_new = policy(torch.Tensor(state))
+            q1_forward = soft_q1(state.float(), action_new.float())
+            q2_forward = soft_q2(state.float(), action_new.float())
+            q_forward = torch.min(q1_forward, q2_forward)
+            # TODO AGAIN: Check the averaging
+            policy_loss = (q_forward - (alpha*torch.mean(action_entropy_new)))
+
+            logging.debug(q_forward)
+            logging.debug(alpha*torch.mean(action_entropy_new))
+            policy_loss.backward()
+            policy.optimizer.step()
+
+            # Copy the values for the target network over
 
         # Execute a in the environment
         # Check if it is terminal -> Save in Replay Buffer
