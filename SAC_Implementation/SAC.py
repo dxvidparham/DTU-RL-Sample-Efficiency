@@ -3,6 +3,7 @@ from copy import deepcopy
 
 from matplotlib import pyplot as plt
 import numpy as np
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -72,7 +73,7 @@ def run_sac(hyperparameter_space: dict) -> None:
     ##
     environment_name = hyperparameter_space.get('env_name')
     # TODO Update
-    env = dmc2gym.make(domain_name="point_mass", task_name="easy", seed=1)
+    env = dmc2gym.make(domain_name="hopper", task_name="stand", seed=1)
 
     s = env.reset()
     a = env.action_space.sample()
@@ -135,10 +136,13 @@ def run_sac(hyperparameter_space: dict) -> None:
         # Observe state and action
         current_state = env.reset()
         # The policy network returns the mean and the std of the action. However, we only need an action to start
+        logging.debug([i for i in policy.parameters()])
         action_mean, _ = policy(torch.Tensor(current_state))
 
         # Do the next step
+        logging.debug(f"Our action we chose is : {action_mean}")
         s1, r, done, _ = env.step(np.array(action_mean.detach()))
+        logging.debug(f"WWEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE ARE DONE: {done}")
         buffer.add(obs=current_state, action=action_mean.detach(), reward=r, next_obs=s1, done=done)
 
         if bool(done):
@@ -187,12 +191,21 @@ def run_sac(hyperparameter_space: dict) -> None:
 
             # TODO AGAIN: Check the averaging
             policy_loss = q_forward - (alpha*torch.mean(action_entropy_new))
-            policy_loss.backward(torch.Tensor(sample_batch_size,1))
+            policy_loss.backward(torch.Tensor(sample_batch_size, 1))
             policy.optimizer.step()
 
+            logging.debug(f"TAU {tau} #########################################################################")
             # Copy the values for the target network over
-            for param, target_param in zip(soft_q1.parameters(), soft_q1_targets.parameters()):
-                target_param.data.copy_(tau*param.data + (1-tau) * target_param.data)
+            # for param, target_param in zip(soft_q1.parameters(), soft_q1_targets.parameters()):
+            #     target_param.data.copy_(tau * param.data + (1-tau) * target_param.data)
+            #
+            # for param, target_param in zip(soft_q2.parameters(), soft_q2_targets.parameters()):
+            #     target_param.data.copy_(tau * param.data + (1-tau) * target_param.data)
+            soft_q1_targets.update_params(soft_q1.state_dict(), tau)
+            soft_q2_targets.update_params(soft_q2.state_dict(), tau)
+
+            #     logging.debug(param)
+            #     logging.debug(target_param)
 
         # Execute a in the environment
         # Check if it is terminal -> Save in Replay Buffer

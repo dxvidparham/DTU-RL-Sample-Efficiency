@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -76,6 +78,12 @@ class SoftQNetwork(nn.Module):
         action_value_output = self.linear3(action_value)
         return action_value_output
 
+    def update_params(self, new_params, tau):
+        params = self.state_dict()
+        for k in params.keys():
+            params[k] = (1-tau) * params[k] + tau * new_params[k]
+        self.load_state_dict(params)
+
 
 # POLICY
 class PolicyNetwork(nn.Module):
@@ -111,6 +119,10 @@ class PolicyNetwork(nn.Module):
         x = F.relu(self.linear2(x))
 
         mean = self.mean_linear(x)
+
+        # Squash it in -1 1
+        mean = F.tanh(mean)
+
         log_std = self.log_std_linear(x)
         log_std = torch.clamp(log_std, self.log_std_min, self.log_std_max)
 
