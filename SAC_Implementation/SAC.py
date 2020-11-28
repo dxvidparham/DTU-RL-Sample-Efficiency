@@ -1,4 +1,5 @@
 ## Imports
+from copy import deepcopy
 
 from matplotlib import pyplot as plt
 import numpy as np
@@ -87,7 +88,7 @@ def run_sac(hyperparameter_space: dict) -> None:
     logging.debug(f'action shape: {action_dim}')
 
     episodes = hyperparameter_space.get('episodes')
-    sample_batch_size = hyperparameter_space.get('episodes')
+    sample_batch_size = hyperparameter_space.get('sample_batch_size')
 
     gamma = hyperparameter_space.get('gamma')
 
@@ -104,6 +105,7 @@ def run_sac(hyperparameter_space: dict) -> None:
     val_freq = hyperparameter_space.get('val_freq')  # validation frequency
     episodes = hyperparameter_space.get('episodes')
     alpha = hyperparameter_space.get('alpha')
+    tau = hyperparameter_space.get('tau')
     # optimizer = optim.Adam(nn.parameters(), lr=learning_rate)
 
     # Print the hyperparameters
@@ -145,6 +147,8 @@ def run_sac(hyperparameter_space: dict) -> None:
         for _up_epi in range(update_episodes):
             logging.debug(f"Episode {_episode+1} | {_up_epi+1}")
 
+            soft_q1.optimizer.zero_grad()
+            soft_q2.optimizer.zero_grad()
             # Sample from Replay buffer
             state, action, reward, new_state, done, _ = buffer.sample(batch_size=sample_batch_size)
 
@@ -172,6 +176,7 @@ def run_sac(hyperparameter_space: dict) -> None:
             q2_forward = soft_q2(state.float(), action.float())
             q2_loss = F.mse_loss(q2_forward.float(), y_hat.float().float())
             q2_loss.backward()
+            # q2_loss.backward()
             soft_q2.optimizer.step()
 
             # Update Policy Network
@@ -179,15 +184,15 @@ def run_sac(hyperparameter_space: dict) -> None:
             q1_forward = soft_q1(state.float(), action_new.float())
             q2_forward = soft_q2(state.float(), action_new.float())
             q_forward = torch.min(q1_forward, q2_forward)
-            # TODO AGAIN: Check the averaging
-            policy_loss = (q_forward - (alpha*torch.mean(action_entropy_new)))
 
-            logging.debug(q_forward)
-            logging.debug(alpha*torch.mean(action_entropy_new))
-            policy_loss.backward()
+            # TODO AGAIN: Check the averaging
+            policy_loss = q_forward - (alpha*torch.mean(action_entropy_new))
+            policy_loss.backward(torch.Tensor(sample_batch_size,1))
             policy.optimizer.step()
 
             # Copy the values for the target network over
+            for param, target_param in zip(soft_q1.parameters(), soft_q1_targets.parameters()):
+                target_param.data.copy_(tau*param.data + (1-tau) * target_param.data)
 
         # Execute a in the environment
         # Check if it is terminal -> Save in Replay Buffer

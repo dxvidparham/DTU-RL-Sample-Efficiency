@@ -119,6 +119,11 @@ parser.add_argument('--update_episodes',
                     type=int,
                     # TODO Add more meaningful description
                     help='Update Episodes for the Training (Offline-Policy-learning)')
+parser.add_argument('--tau',
+                    default=0.01,
+                    type=float,
+                    # TODO Add more meaningful description
+                    help='')
 
 args = vars(parser.parse_args())
 

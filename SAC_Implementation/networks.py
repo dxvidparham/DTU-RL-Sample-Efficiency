@@ -43,6 +43,7 @@ class ValueNetwork(nn.Module):
 
         return state_value_output
 
+
 # CRITIC
 class SoftQNetwork(nn.Module):
     """
@@ -74,6 +75,7 @@ class SoftQNetwork(nn.Module):
         action_value = F.relu(self.linear2(action_value))
         action_value_output = self.linear3(action_value)
         return action_value_output
+
 
 # POLICY
 class PolicyNetwork(nn.Module):
