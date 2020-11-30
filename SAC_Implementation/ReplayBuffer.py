@@ -11,8 +11,8 @@ class ReplayBuffer(object):
         self.next_obs = np.empty((capacity, obs_shape))
         self.action = np.empty((capacity, action_shape))
         self.reward = np.empty((capacity, 1))
-        self.not_done = np.empty((capacity, 1))
-        self.not_done_no_max = np.empty((capacity, 1))
+        self.done = np.empty((capacity, 1))
+        self.done_no_max = np.empty((capacity, 1))
 
         self.idx = 0
         self.last_save = 0

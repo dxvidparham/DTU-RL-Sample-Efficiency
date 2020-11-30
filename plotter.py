@@ -15,7 +15,7 @@ class Plotter:
         self.rewards = []
         self.lengths = []
         self.policy_losses = []
-        self.q1_losses = []
+        self.q_losses = []
 
 
 
@@ -23,7 +23,7 @@ class Plotter:
         self.rewards.append(reward)
         self.lengths.append(length)
         self.policy_losses.append(policy_loss)
-        self.q1_losses.append(q_loss)
+        self.q_losses.append(q_loss)
 
 
     def plot(self):
