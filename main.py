@@ -61,7 +61,7 @@ parser.add_argument('--replay_buffer_size',
                     help='')
 
 parser.add_argument('--n_hidden_layer',
-                    default=2,
+                    default=10,
                     type=int,
                     # TODO Add more meaningful description
                     help='')
@@ -120,7 +120,7 @@ parser.add_argument('--update_episodes',
                     # TODO Add more meaningful description
                     help='Update Episodes for the Training (Offline-Policy-learning)')
 parser.add_argument('--tau',
-                    default=1,
+                    default=0.01,
                     type=float,
                     # TODO Add more meaningful description
                     help='')

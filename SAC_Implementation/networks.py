@@ -85,7 +85,11 @@ class SoftQNetwork(nn.Module):
         params = self.state_dict()
         for k in params.keys():
             old_params_ = copy.deepcopy(params[k])
+
+
             params[k] = torch.multiply(params[k], (1 - tau)) + torch.multiply(new_params[k], tau)
+
+
             if (params[k] != params[k]).numpy().any():
                 logging.error("WE SAW NONE VALUES:")
                 logging.error(f"new_params: {new_params[k]}")
@@ -148,7 +152,10 @@ class PolicyNetwork(nn.Module):
         z = normal.rsample()
         action = torch.tanh(z)
 
-        log_pi = normal.log_prob(z) - torch.log(1 - action.pow(2) + epsilon)
-        log_pi = log_pi.sum(1, keepdim=True)
+        # log_pi = normal.log_prob(z) - torch.log(1 - action.pow(2) + epsilon)
+        # log_pi = log_pi.sum(1, keepdim=True)
+
+        residual = (-0.5 * z.pow(2)-log_std).sum(-1,keepdim=True)
+        log_pi = residual - 0.5*np.log(2*np.pi)*z.size(-1)
 
         return action, log_pi

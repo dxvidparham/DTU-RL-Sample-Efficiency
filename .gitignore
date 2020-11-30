@@ -573,3 +573,4 @@ dmypy.json
 cython_debug/
 
 .idea
+/figures/
