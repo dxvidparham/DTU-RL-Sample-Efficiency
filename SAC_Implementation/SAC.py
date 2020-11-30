@@ -138,12 +138,13 @@ def run_sac(hyperparameter_space: dict) -> None:
     buffer = ReplayBuffer(state_dim, action_dim,
                           replay_buffer_size)
 
-    # for graph
-    epsilon = 1.0
+
 
     plotter = Plotter(episodes)
     try:
         for _episode in range(episodes):
+            # for graph
+            ep_reward, policy_loss_incr, q_loss_incr = 0, 0, 0
             for i in range(sample_batch_size):
                 logging.debug(f"Episode {_episode+1}")
 
@@ -156,12 +157,13 @@ def run_sac(hyperparameter_space: dict) -> None:
                 logging.debug(f"Our action we chose is : {action_mean}")
                 s1, r, done, _ = env.step(np.array(action_mean.detach()))
                 buffer.add(obs=current_state, action=action_mean.detach(), reward=r, next_obs=s1, done=done)
+                ep_reward += r
 
             if bool(done):
                 break
 
-            # for graph
-            ep_reward, policy_loss_incr, q1_loss_incr, q2_loss_incr = 0, 0, 0, 0
+
+
             for _up_epi in range(update_episodes):
                 logging.debug(f"Episode {_episode + 1} | {_up_epi + 1}")
 
@@ -227,14 +229,14 @@ def run_sac(hyperparameter_space: dict) -> None:
                 #     logging.debug(target_param)
 
                 # for graph
-                ep_reward += r
+
                 policy_loss_incr += policy_loss.item()
-                q1_loss_incr += q_loss.item()
-                # q2_loss_incr += q2_loss.item()
+                q_loss_incr += q_loss.item()
+
 
             # for graph
-            epsilon *= episodes / (_episode / (episodes / 20) + episodes)  # decrease epsilon
-            plotter.add_to_lists(ep_reward, update_episodes + 1, policy_loss_incr, q1_loss_incr, q2_loss_incr, epsilon)
+
+            plotter.add_to_lists(ep_reward, update_episodes + 1, policy_loss_incr, q_loss_incr)
 
             # Execute a in the environment
             # Check if it is terminal -> Save in Replay Buffer
