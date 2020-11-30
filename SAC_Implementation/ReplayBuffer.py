@@ -28,8 +28,8 @@ class ReplayBuffer(object):
         self.next_obs[self.idx] = next_obs
         self.action[self.idx] = action
         self.reward[self.idx] = reward
-        self.not_done[self.idx] = done
-        self.not_done_no_max[self.idx] = done_no_max
+        self.done[self.idx] = done
+        self.done_no_max[self.idx] = done_no_max
 
         # We use rewrite if buffer is full.
         self.idx = (self.idx + 1) % self.capacity
@@ -49,7 +49,7 @@ class ReplayBuffer(object):
 
         next_obses = torch.as_tensor(self.next_obs[idxs]).float()
 
-        not_dones = torch.as_tensor(self.not_done[idxs])
-        not_dones_no_max = torch.as_tensor(self.not_done_no_max[idxs])
+        dones = torch.as_tensor(self.done[idxs])
+        dones_no_max = torch.as_tensor(self.done_no_max[idxs])
 
-        return obses, actions, rewards, next_obses, not_dones, not_dones_no_max
+        return obses, actions, rewards, next_obses, dones, dones_no_max

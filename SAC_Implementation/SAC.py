@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-
+from plotter import Plotter
 import json
 
 import logging
@@ -130,9 +130,11 @@ def run_sac(hyperparameter_space: dict) -> None:
 
     buffer = ReplayBuffer(state_dim, action_dim,
                           replay_buffer_size)
-
+    # for graph
+    epsilon = 1.0
+    rewards, lengths, losses, epsilons = [], [], [], []
     for _episode in range(episodes):
-        logging.debug(f"Episode {_episode+1}")
+        logging.debug(f"Episode {_episode + 1}")
 
         # Observe state and action
         current_state = env.reset()
@@ -146,9 +148,10 @@ def run_sac(hyperparameter_space: dict) -> None:
 
         if bool(done):
             break
-
+        # for graph
+        ep_reward, ep_loss = 0, 0
         for _up_epi in range(update_episodes):
-            logging.debug(f"Episode {_episode+1} | {_up_epi+1}")
+            logging.debug(f"Episode {_episode + 1} | {_up_epi + 1}")
 
             soft_q1.optimizer.zero_grad()
             soft_q2.optimizer.zero_grad()
@@ -167,7 +170,7 @@ def run_sac(hyperparameter_space: dict) -> None:
 
             # We calculate the estimated reward for the next state
             # TODO Check the average (We take the mean of the entropy right now)
-            y_hat = reward + gamma*(1-done) * (y_hat_q - torch.mean(action_entropy))
+            y_hat = reward + gamma * (1 - done) * (y_hat_q - torch.mean(action_entropy))
 
             ## Forward step of the Actor network
             # Q1 Network
@@ -190,7 +193,7 @@ def run_sac(hyperparameter_space: dict) -> None:
             q_forward = torch.min(q1_forward, q2_forward)
 
             # TODO AGAIN: Check the averaging
-            policy_loss = q_forward - (alpha*torch.mean(action_entropy_new))
+            policy_loss = q_forward - (alpha * torch.mean(action_entropy_new))
             policy_loss.backward(torch.Tensor(sample_batch_size, 1))
             policy.optimizer.step()
 
@@ -206,9 +209,22 @@ def run_sac(hyperparameter_space: dict) -> None:
             #     logging.debug(param)
             #     logging.debug(target_param)
 
+        # for graph
+        ep_reward += r
+        ep_loss += policy_loss.item()
+
+        # for graph
+        epsilon *= episodes / (_episode / (episodes / 20) + episodes)  # decrease epsilon
+        epsilons.append(epsilon)
+        rewards.append(ep_reward)
+        lengths.append(_up_epi + 1)
+        losses.append(ep_loss)
+
         # Execute a in the environment
         # Check if it is terminal -> Save in Replay Buffer
         # ---> Reset if
+
+    Plotter(episodes, rewards, lengths, losses, epsilons).plot()
 
     """import gym
     env = gym.make("Taxi-v3")
