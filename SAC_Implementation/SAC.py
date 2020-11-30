@@ -61,7 +61,6 @@ def one_hot(l):
     return one_hot2
 
 ##
-
 def run_sac(hyperparameter_space: dict) -> None:
     """
     Method to to start the SAC algorithm on a certain problem
@@ -73,13 +72,15 @@ def run_sac(hyperparameter_space: dict) -> None:
     ##
     environment_name = hyperparameter_space.get('env_name')
     # TODO Update
-    env = dmc2gym.make(domain_name="hopper", task_name="stand", seed=1)
+    env = dmc2gym.make(domain_name="hopper", task_name="stand", seed=1, frame_skip=1)
 
     s = env.reset()
     a = env.action_space.sample()
     logging.debug(f'sample state: {s}')
     logging.debug(f'sample action:{a}')
-    ##
+    ## frame skip = 4
+    ## Card pole = 8
+    ## Finka task = 2
     # Hyperparameters
     action_dim = env.action_space.shape[0]
     state_dim = env.observation_space.shape[0]
@@ -136,13 +137,11 @@ def run_sac(hyperparameter_space: dict) -> None:
         # Observe state and action
         current_state = env.reset()
         # The policy network returns the mean and the std of the action. However, we only need an action to start
-        logging.debug([i for i in policy.parameters()])
         action_mean, _ = policy(torch.Tensor(current_state))
 
         # Do the next step
         logging.debug(f"Our action we chose is : {action_mean}")
         s1, r, done, _ = env.step(np.array(action_mean.detach()))
-        logging.debug(f"WWEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE ARE DONE: {done}")
         buffer.add(obs=current_state, action=action_mean.detach(), reward=r, next_obs=s1, done=done)
 
         if bool(done):
@@ -153,6 +152,7 @@ def run_sac(hyperparameter_space: dict) -> None:
 
             soft_q1.optimizer.zero_grad()
             soft_q2.optimizer.zero_grad()
+
             # Sample from Replay buffer
             state, action, reward, new_state, done, _ = buffer.sample(batch_size=sample_batch_size)
 
@@ -166,7 +166,7 @@ def run_sac(hyperparameter_space: dict) -> None:
             action, action_entropy = policy(torch.Tensor(new_state))
 
             # We calculate the estimated reward for the next state
-            # TODO CHeck the average (We take the mean of the entropy right now)
+            # TODO Check the average (We take the mean of the entropy right now)
             y_hat = reward + gamma*(1-done) * (y_hat_q - torch.mean(action_entropy))
 
             ## Forward step of the Actor network
@@ -194,7 +194,6 @@ def run_sac(hyperparameter_space: dict) -> None:
             policy_loss.backward(torch.Tensor(sample_batch_size, 1))
             policy.optimizer.step()
 
-            logging.debug(f"TAU {tau} #########################################################################")
             # Copy the values for the target network over
             # for param, target_param in zip(soft_q1.parameters(), soft_q1_targets.parameters()):
             #     target_param.data.copy_(tau * param.data + (1-tau) * target_param.data)

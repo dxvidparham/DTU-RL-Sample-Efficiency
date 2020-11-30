@@ -1,4 +1,5 @@
 import logging
+import sys
 
 import numpy as np
 import torch
@@ -7,12 +8,14 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions.normal import Normal
 
+import copy
 """
 SAC uses three different networks:
 a state value function V parameterized by ψ,
 a soft Q-function Q parameterized by θ,
 and a policy function π parameterized by ϕ
 """
+
 
 # ACTOR
 class ValueNetwork(nn.Module):
@@ -21,12 +24,12 @@ class ValueNetwork(nn.Module):
     """
 
     def __init__(
-        self,
-        input_dim,
-        hidden_dim,
-        lr_value,
-        output_dim=1,
-        init_w=3e-3,
+            self,
+            input_dim,
+            hidden_dim,
+            lr_value,
+            output_dim=1,
+            init_w=3e-3,
     ):
         super(ValueNetwork, self).__init__()
         self.linear1 = nn.Linear(input_dim, hidden_dim)
@@ -53,13 +56,13 @@ class SoftQNetwork(nn.Module):
     """
 
     def __init__(
-        self,
-        state_dim,
-        action_dim,
-        hidden_dim,
-        lr_critic,
-        output_dim=1,
-        init_w=3e-3,
+            self,
+            state_dim,
+            action_dim,
+            hidden_dim,
+            lr_critic,
+            output_dim=1,
+            init_w=3e-3,
     ):
         super(SoftQNetwork, self).__init__()
         self.linear1 = nn.Linear(state_dim + action_dim, hidden_dim)
@@ -81,21 +84,30 @@ class SoftQNetwork(nn.Module):
     def update_params(self, new_params, tau):
         params = self.state_dict()
         for k in params.keys():
-            params[k] = (1-tau) * params[k] + tau * new_params[k]
+            old_params_ = copy.deepcopy(params[k])
+            params[k] = torch.multiply(params[k], (1 - tau)) + torch.multiply(new_params[k], tau)
+            if (params[k] != params[k]).numpy().any():
+                logging.error("WE SAW NONE VALUES:")
+                logging.error(f"new_params: {new_params[k]}")
+                logging.error(f"old_params: {old_params_}")
+                logging.error(f"tau: {tau}")
+                logging.error(".........................")
+                logging.error(f"params: {params[k]}")
+                sys.exit(-1)
         self.load_state_dict(params)
 
 
 # POLICY
 class PolicyNetwork(nn.Module):
     def __init__(
-        self,
-        input_dim,
-        action_dim,
-        hidden_dim,
-        lr_policy,
-        init_w=3e-3,
-        log_std_min=-20,
-        log_std_max=2,
+            self,
+            input_dim,
+            action_dim,
+            hidden_dim,
+            lr_policy,
+            init_w=3e-3,
+            log_std_min=-20,
+            log_std_max=2,
     ):
         super(PolicyNetwork, self).__init__()
         self.log_std_min = log_std_min
