@@ -130,9 +130,11 @@ def run_sac(hyperparameter_space: dict) -> None:
 
     buffer = ReplayBuffer(state_dim, action_dim,
                           replay_buffer_size)
+
     # for graph
     epsilon = 1.0
-    rewards, lengths, losses, epsilons = [], [], [], []
+
+    plotter = Plotter(episodes)
     for _episode in range(episodes):
         logging.debug(f"Episode {_episode + 1}")
 
@@ -149,7 +151,7 @@ def run_sac(hyperparameter_space: dict) -> None:
         if bool(done):
             break
         # for graph
-        ep_reward, ep_loss = 0, 0
+        ep_reward, policy_loss_incr, q1_loss_incr, q2_loss_incr = 0, 0, 0, 0
         for _up_epi in range(update_episodes):
             logging.debug(f"Episode {_episode + 1} | {_up_epi + 1}")
 
@@ -209,22 +211,24 @@ def run_sac(hyperparameter_space: dict) -> None:
             #     logging.debug(param)
             #     logging.debug(target_param)
 
-        # for graph
-        ep_reward += r
-        ep_loss += policy_loss.item()
+            # for graph
+            ep_reward += r
+            policy_loss_incr += policy_loss.item()
+            q1_loss_incr += q1_loss.item()
+            q2_loss_incr += q2_loss.item()
 
         # for graph
         epsilon *= episodes / (_episode / (episodes / 20) + episodes)  # decrease epsilon
-        epsilons.append(epsilon)
-        rewards.append(ep_reward)
-        lengths.append(_up_epi + 1)
-        losses.append(ep_loss)
+        plotter.add_to_lists(ep_reward, update_episodes + 1, policy_loss_incr, q1_loss_incr, q2_loss_incr, epsilon)
+
 
         # Execute a in the environment
         # Check if it is terminal -> Save in Replay Buffer
         # ---> Reset if
 
-    Plotter(episodes, rewards, lengths, losses, epsilons).plot()
+    plotter.plot()
+
+
 
     """import gym
     env = gym.make("Taxi-v3")
