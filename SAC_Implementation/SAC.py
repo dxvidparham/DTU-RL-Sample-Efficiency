@@ -1,4 +1,5 @@
 ## Imports
+import sys
 import time
 
 import numpy as np
@@ -57,8 +58,7 @@ def one_hot(l):
     return one_hot2
 
 
-def initialize_environment(task_name, domain_name, seed, frame_skip):
-    # TODO Update
+def initialize_environment(domain_name, task_name, seed, frame_skip):
     # env = dmc2gym.make(domain_name="walker",
     #                    task_name="walk",
     #                    seed=1,
@@ -66,10 +66,10 @@ def initialize_environment(task_name, domain_name, seed, frame_skip):
 
     LogHelper.print_step_log(f"Initialize Environment: {domain_name}/{task_name} ...")
 
-    env = dmc2gym.make(domain_name="cartpole",
-                       task_name="balance",
-                       seed=1,
-                       frame_skip=1)
+    env = dmc2gym.make(domain_name=domain_name,
+                       task_name=task_name,
+                       seed=seed,
+                       frame_skip=frame_skip)
 
     # Debug logging to check environment specs
     s = env.reset()
@@ -130,10 +130,10 @@ def run_sac(hyperparameter_space: dict) -> None:
 
     # Print the hyperparameters
     # Initialize the environment
-    env, action_dim, state_dim = initialize_environment(domain_name=hyperparameter_space.get('env-domain'),
-                                                        task_name=hyperparameter_space.get('env-task'),
+    env, action_dim, state_dim = initialize_environment(domain_name=hyperparameter_space.get('env_domain'),
+                                                        task_name=hyperparameter_space.get('env_task'),
                                                         seed=hyperparameter_space.get('seed'),
-                                                        frame_skip=hyperparameter_space.get('frame-skip'))
+                                                        frame_skip=hyperparameter_space.get('frame_skip'))
 
     LogHelper.print_dict(hyperparameter_space, "Hyperparameter")
     LogHelper.print_big_log("Start Training")
@@ -150,45 +150,49 @@ def run_sac(hyperparameter_space: dict) -> None:
                            "replay_buffer_size": hyperparameter_space.get('replay_buffer_size')
                        })
 
+
     # Init the Plotter
     plotter = Plotter(hyperparameter_space.get('episodes'))
     try:
         for _episode in range(hyperparameter_space.get('episodes')):
             # for graph
-            ep_reward, policy_loss_incr, q_loss_incr, length = 0, 0, 0,0
+            ep_reward, policy_loss_incr, q_loss_incr, length = 0, 0, 0, 0
             logging.debug(f"Episode {_episode + 1}")
 
             # Observe state and action
             current_state = env.reset()
             logging.debug(f"Max Steps {hyperparameter_space.get('max_steps')}")
 
-            for step in range(hyperparameter_space.get('max_steps')):
+            for step in range(100000): # range(hyperparameter_space.get('max_steps')):
                 # Do the next step
                 logging.debug(f"Episode {_episode + 1} | step {step}")
-                action_mean, _ = sac.sample_action(torch.Tensor(current_state))
 
+                if _episode > 10:
+                    action_mean, _ = sac.sample_action(torch.Tensor(current_state))
+                else:
+                    action_mean = env.action_space.sample()
+
+                logging.debug(f"Our action we chose is : {action_mean}")
                 logging.debug(f"The state is : {current_state}")
                 logging.debug(f"Our action we chose is : {action_mean}")
-                s1, r, done, _ = env.step(np.array(action_mean.detach()))
+                s1, r, done, _ = env.step(np.array(action_mean))
 
                 logging.debug(f"The reward we got is {r} | {done}")
                 sac.buffer.add(obs=current_state,
-                               action=action_mean.detach(),
+                               action=action_mean,
                                reward=r,
                                next_obs=s1,
                                done=done)
                 ep_reward += r
 
                 _metric = sac.update()
+
                 policy_loss_incr += _metric[0]
                 q_loss_incr += _metric[1]
                 length = step
 
-
                 # Update current step
                 current_state = s1
-
-                # time.sleep(0.5)
 
                 if bool(done):
                     logging.debug("Annd we are dead##################################################################")
@@ -284,4 +288,5 @@ class SACAlgorithm:
         return policy_loss.item(), q_loss.item()
 
     def sample_action(self, state: torch.Tensor):
-        return self.policy.sample(state)
+        action, log_pi = self.policy.sample(state)
+        return action.detach(), log_pi

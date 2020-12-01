@@ -89,15 +89,9 @@ parser.add_argument('--alpha',
                     # TODO Add more meaningful description
                     help='Validation Frequency')
 
-parser.add_argument('--env_name',
-                    default='CartPole-v0',
-                    type=str,
-                    # TODO Add more meaningful description
-                    help='Environment Name')
-
 # TODO Set higher episode times
 parser.add_argument('--episodes',
-                    default=1,
+                    default=2000,
                     type=int,
                     # TODO Add more meaningful description
                     help='Episodes for the Training')
@@ -108,7 +102,7 @@ parser.add_argument('--max_steps',
                     # TODO Add more meaningful description
                     help='Update Episodes for the Training (Offline-Policy-learning)')
 parser.add_argument('--tau',
-                    default=0.01,
+                    default=0.09,
                     type=float,
                     # TODO Add more meaningful description
                     help='')
@@ -117,11 +111,13 @@ parser.add_argument('--env-domain',
                     type=str,
                     # TODO Add more meaningful description
                     help='Domain Name for the task')
+
 parser.add_argument('--env-task',
                     default='balance',
                     type=str,
                     # TODO Add more meaningful description
                     help='Task Name')
+
 parser.add_argument('--seed',
                     default=1,
                     type=int,
