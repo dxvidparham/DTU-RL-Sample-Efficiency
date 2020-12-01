@@ -17,24 +17,22 @@ class Plotter:
         self.policy_losses = []
         self.q_losses = []
 
-
-
     def add_to_lists(self, reward, length, policy_loss, q_loss):
         self.rewards.append(reward)
         self.lengths.append(length)
         self.policy_losses.append(policy_loss)
         self.q_losses.append(q_loss)
 
-
     def plot(self):
 
-        _eps = min( self.num_episodes , len(self.rewards))
+        _eps = min(self.num_episodes, len(self.rewards))
 
         plt.figure(figsize=(16, 9))
         plt.subplot(411)
         plt.title('training rewards')
-        plt.plot(range(1, _eps + 1), self.rewards)
-        plt.plot(moving_average(self.rewards))
+        plt.plot(range(1, _eps + 1), self.rewards, label="Model")
+        plt.plot(moving_average(self.rewards), label="Moving Average")
+        plt.legend()
         plt.xlim([0, _eps])
         plt.subplot(412)
         plt.title('training lengths')
@@ -54,7 +52,7 @@ class Plotter:
 
         plt.tight_layout()
 
-        now = datetime.now().strftime("%d%m%Y%H%M%S")
+        now = datetime.now().strftime("%d_%m_%Y_-%H_%M_%S")
         filename = f"plot_{now}.png"
         plt.savefig('figures/' + filename)
 

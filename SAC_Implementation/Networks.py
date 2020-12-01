@@ -10,43 +10,10 @@ from torch.distributions.normal import Normal
 
 import copy
 """
-SAC uses three different networks:
-a state value function V parameterized by ψ,
+SAC uses two different networks:
 a soft Q-function Q parameterized by θ,
 and a policy function π parameterized by ϕ
 """
-
-
-# ACTOR
-class ValueNetwork(nn.Module):
-    """
-    The ValueNetwork provides feedback to our PolicyNetwork if certain states are valueable or not.
-    """
-
-    def __init__(
-            self,
-            input_dim,
-            hidden_dim,
-            lr_value,
-            output_dim=1,
-            init_w=3e-3,
-    ):
-        super(ValueNetwork, self).__init__()
-        self.linear1 = nn.Linear(input_dim, hidden_dim)
-        self.linear2 = nn.Linear(hidden_dim, hidden_dim)
-        self.linear3 = nn.Linear(hidden_dim, output_dim)
-
-        self.linear3.weight.data.uniform_(-init_w, init_w)
-        self.linear3.bias.data.uniform_(-init_w, init_w)
-
-        self.optimizer = optim.Adam(self.parameters(), lr=lr_value)
-
-    def forward(self, state):
-        state_value = F.relu(self.linear1(state))
-        state_value = F.relu(self.linear2(state_value))
-        state_value_output = self.linear3(state_value)
-
-        return state_value_output
 
 
 # CRITIC
@@ -137,7 +104,7 @@ class PolicyNetwork(nn.Module):
         mean = self.mean_linear(x)
 
         # Squash it in -1 1
-        mean = F.tanh(mean)
+        mean = torch.tanh(mean)
 
         log_std = self.log_std_linear(x)
         log_std = torch.clamp(log_std, self.log_std_min, self.log_std_max)

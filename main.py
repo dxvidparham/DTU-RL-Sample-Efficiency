@@ -60,25 +60,13 @@ parser.add_argument('--replay_buffer_size',
                     # TODO Add more meaningful description
                     help='')
 
-parser.add_argument('--n_hidden_layer',
-                    default=10,
-                    type=int,
-                    # TODO Add more meaningful description
-                    help='')
-
-parser.add_argument('--n_hidden',
-                    default=256,
-                    type=int,
-                    # TODO Add more meaningful description
-                    help='')
-
 parser.add_argument('--target_smoothing',
                     default=5e-3,
                     type=float,
                     # TODO Add more meaningful description
                     help='')
 parser.add_argument('--sample_batch_size',
-                    default=1,
+                    default=1024,
                     type=int,
                     # TODO Add more meaningful description
                     help='')
@@ -114,8 +102,8 @@ parser.add_argument('--episodes',
                     # TODO Add more meaningful description
                     help='Episodes for the Training')
 
-parser.add_argument('--update_episodes',
-                    default=1,
+parser.add_argument('--max_steps',
+                    default=100000,
                     type=int,
                     # TODO Add more meaningful description
                     help='Update Episodes for the Training (Offline-Policy-learning)')
@@ -124,6 +112,29 @@ parser.add_argument('--tau',
                     type=float,
                     # TODO Add more meaningful description
                     help='')
+parser.add_argument('--env-domain',
+                    default='cartpole',
+                    type=str,
+                    # TODO Add more meaningful description
+                    help='Domain Name for the task')
+parser.add_argument('--env-task',
+                    default='balance',
+                    type=str,
+                    # TODO Add more meaningful description
+                    help='Task Name')
+parser.add_argument('--seed',
+                    default=1,
+                    type=int,
+                    # TODO Add more meaningful description
+                    help='')
+parser.add_argument('--frame-skip',
+                    default=4,
+                    type=int,
+                    help='Applying an action for several step. According to tutorial: Card_pole: 8, Finka Task: 2 and a default of 4')
+parser.add_argument('--amount-presampling',
+                    default=1000,
+                    type=int,
+                    help='Number of steps done before hand to fill the replay buffer.')
 
 args = vars(parser.parse_args())
 
@@ -138,6 +149,8 @@ logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:
                     handlers=[logging.FileHandler("./logs/my_log.log", mode='w'),
                               logging.StreamHandler()]
                     )
+mpl_logger = logging.getLogger('matplotlib')
+mpl_logger.setLevel(logging.WARNING)
 
 # The import must be done down here to allow the logging configuration
 from SAC_Implementation import SAC

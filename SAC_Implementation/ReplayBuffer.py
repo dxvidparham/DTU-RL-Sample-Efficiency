@@ -20,7 +20,8 @@ class ReplayBuffer(object):
 
         logging.debug("Initialized Replay Buffer...")
 
-    def __len__(self):
+    @property
+    def length(self):
         return self.capacity if self.full else self.idx
 
     def add(self, obs, action, reward, next_obs, done, done_no_max=0):
