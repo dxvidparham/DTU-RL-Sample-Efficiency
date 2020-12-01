@@ -137,12 +137,12 @@ def run_sac(hyperparameter_space: dict) -> None:
 
     LogHelper.print_dict(hyperparameter_space, "Hyperparameter")
     LogHelper.print_big_log("Start Training")
-
+    logging.debug(hyperparameter_space)
     sac = SACAlgorithm(env=env,
                        param={
                            "hidden_dim": hyperparameter_space.get('hidden_dim'),
                            "lr_critic": hyperparameter_space.get('lr_critic'),
-                           "lr_policy": hyperparameter_space.get('lr_policy'),
+                           "lr_actor": hyperparameter_space.get('lr_actor'),
                            "alpha": hyperparameter_space.get('alpha'),
                            "tau": hyperparameter_space.get('tau'),
                            "gamma": hyperparameter_space.get('gamma'),
@@ -222,6 +222,8 @@ class SACAlgorithm:
         self.action_dim = env.action_space.shape[0]
         self.state_dim = env.observation_space.shape[0]
 
+        logging.debug(param)
+
         self.soft_q1, self.soft_q2, self.soft_q1_targets, self.soft_q2_targets, self.policy, self.buffer = initialize_nets_and_buffer(
             state_dim=self.state_dim,
             action_dim=self.action_dim,
@@ -229,7 +231,7 @@ class SACAlgorithm:
             policy_hidden=param.get('hidden_dim'),
             learning_rates={
                 'critic': param.get('lr_critic'),
-                'actor': param.get('lr_policy')
+                'actor': param.get('lr_actor')
             },
             replay_buffer_size=param.get('replay_buffer_size'),
         )

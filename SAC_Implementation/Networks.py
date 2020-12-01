@@ -120,7 +120,7 @@ class PolicyNetwork(nn.Module):
         # log_pi = normal.log_prob(z) - torch.log(1 - action.pow(2) + epsilon)
         # log_pi = log_pi.sum(1, keepdim=True)
 
-        residual = (-0.5 * z.pow(2)-log_std).sum(-1,keepdim=True)
+        residual = (-0.5 * z.pow(2)-log_std).sum(-1, keepdim=True)
         log_pi = residual - 0.5*np.log(2*np.pi)*z.size(-1)
 
         return action, log_pi
