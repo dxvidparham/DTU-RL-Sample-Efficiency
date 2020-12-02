@@ -5,14 +5,12 @@ import sys
 from datetime import datetime
 from typing import Dict
 
-from matplotlib import pyplot as plt
 import numpy as np
 
 import torch
 
 from SAC_Implementation.SACAlgorithm import SACAlgorithm
 from plotter import Plotter
-import json
 
 from hyperopt import fmin, tpe, space_eval, Trials, STATUS_OK
 
@@ -20,7 +18,7 @@ import logging
 import dmc2gym
 import LogHelper
 from SAC_Implementation.ReplayBuffer import ReplayBuffer
-from SAC_Implementation.networks import ValueNetwork, SoftQNetwork, PolicyNetwork
+from SAC_Implementation.Networks import SoftQNetwork, PolicyNetwork
 
 
 def initialize_environment(domain_name, task_name, seed, frame_skip):
@@ -28,54 +26,27 @@ def initialize_environment(domain_name, task_name, seed, frame_skip):
     #                    task_name="walk",
     #                    seed=1,
     #                    frame_skip=1)
-    env = dmc2gym.make(domain_name="cartpole",
-                       task_name="balance",
-                       seed=1,
-                       frame_skip=1)
 
+    LogHelper.print_step_log(f"Initialize Environment: {domain_name}/{task_name} ...")
+
+    env = dmc2gym.make(domain_name=domain_name,
+                       task_name=task_name,
+                       seed=seed,
+                       frame_skip=frame_skip)
+
+    # Debug logging to check environment specs
     s = env.reset()
     a = env.action_space.sample()
-    logging.debug(f'sample state: {s}')
-    logging.debug(f'sample action:{a}')
-    ## frame skip = 4
-    ## Card pole = 8
-    ## Finka task = 2
-    # Hyperparameters
     action_dim = env.action_space.shape[0]
     state_dim = env.observation_space.shape[0]
 
-    ##
-    logging.debug(f'state shape: {state_dim}')
-    logging.debug(f'action shape: {action_dim}')
+    logging.debug(f'Sample state: {s}')
+    logging.debug(f'Sample action:{a}')
+    logging.debug(f'State DIM: {state_dim}')
+    logging.debug(f'Action DIM:{action_dim}')
 
-    episodes = hyperparameter_space.get('episodes')
-    sample_batch_size = hyperparameter_space.get('sample_batch_size')
+    return env, action_dim, state_dim
 
-    gamma = hyperparameter_space.get('gamma')
-
-    update_episodes = hyperparameter_space.get('update_episodes')
-    hidden_dim = hyperparameter_space.get('hidden_dim')
-    lr_critic = hyperparameter_space.get('lr_critic')  # you know this by now
-    lr_actor = hyperparameter_space.get('lr_actor')  # you know this by now
-    lr_policy = hyperparameter_space.get('lr_policy')  # you know this by now
-    discount_factor = hyperparameter_space.get('discount_factor')  # reward discount factor (gamma), 1.0 = no discount
-    replay_buffer_size = hyperparameter_space.get('replay_buffer_size')
-    n_hidden_layer = hyperparameter_space.get('n_hidden_layer')
-    n_hidden = hyperparameter_space.get('n_hidden')
-    target_smoothing = hyperparameter_space.get('target_smoothing')
-    val_freq = hyperparameter_space.get('val_freq')  # validation frequency
-    episodes = hyperparameter_space.get('episodes')
-    alpha = hyperparameter_space.get('alpha')
-    tau = hyperparameter_space.get('tau')
-    # optimizer = optim.Adam(nn.parameters(), lr=learning_rate)
-
-    # Print the hyperparameters
-    log_helper.print_dict(hyperparameter_space, "Hyperparameter")
-    log_helper.print_big_log("Start Training")
-
-    # Initialization of the Networks
-    # ### Actor The actor tries to mimic the Environment and tries to find the expected reward using the next state
-    # and the action (from the policy network)
 
 def show_replay():
     """
@@ -164,100 +135,55 @@ def run_sac(hyperparameter_space: dict) -> Dict:
     # Init the Plotter
     plotter = Plotter(hyperparameter_space.get('episodes'))
     try:
-        for _episode in range(episodes):
+        for _episode in range(hyperparameter_space.get('episodes')):
             # for graph
-            ep_reward, policy_loss_incr, q_loss_incr = 0, 0, 0
-            for i in range(sample_batch_size):
-                logging.debug(f"Episode {_episode+1}")
+            ep_reward, policy_loss_incr, q_loss_incr, length = 0, 0, 0, 0
+            logging.debug(f"Episode {_episode + 1}")
 
-                # Observe state and action
-                current_state = env.reset()
-                # The policy network returns the mean and the std of the action. However, we only need an action to start
-                action_mean, _ = policy(torch.Tensor(current_state))
+            # Observe state and action
+            current_state = env.reset()
+            logging.debug(f"Max Steps {hyperparameter_space.get('max_steps')}")
 
             for step in range(100000):  # range(hyperparameter_space.get('max_steps')):
                 # Do the next step
+                logging.debug(f"Episode {_episode + 1} | step {step}")
+
+                if _episode > 10:
+                    action_mean, _ = sac.sample_action(torch.Tensor(current_state))
+                else:
+                    action_mean = env.action_space.sample()
+
                 logging.debug(f"Our action we chose is : {action_mean}")
-                s1, r, done, _ = env.step(np.array(action_mean.detach()))
-                buffer.add(obs=current_state, action=action_mean.detach(), reward=r, next_obs=s1, done=done)
+                logging.debug(f"The state is : {current_state}")
+                logging.debug(f"Our action we chose is : {action_mean}")
+                s1, r, done, _ = env.step(np.array(action_mean))
+
+                logging.debug(f"The reward we got is {r} | {done}")
+                sac.buffer.add(obs=current_state,
+                               action=action_mean,
+                               reward=r,
+                               next_obs=s1,
+                               done=done)
                 ep_reward += r
 
-            if bool(done):
-                break
+                _metric = sac.update()
 
+                policy_loss_incr += _metric[0]
+                q_loss_incr += _metric[1]
+                length = step
 
+                # Update current step
+                current_state = s1
 
-            for _up_epi in range(update_episodes):
-                logging.debug(f"Episode {_episode + 1} | {_up_epi + 1}")
-
-                soft_q1.optimizer.zero_grad()
-                soft_q2.optimizer.zero_grad()
-
-                # Sample from Replay buffer
-                state, action, reward, new_state, done, _ = buffer.sample(batch_size=sample_batch_size)
-
-                # Computation of targets
-                # Here we are using 2 different Q Networks and afterwards choose the lower reward as regulator.
-                y_hat_q1 = soft_q1_targets(state.float(), action.float())
-                y_hat_q2 = soft_q2_targets(state.float(), action.float())
-                y_hat_q = torch.min(y_hat_q1, y_hat_q2)
-
-                # Sample the action for the new state using the policy network
-                action, action_entropy = policy.sample(torch.Tensor(new_state))
-
-                # We calculate the estimated reward for the next state
-                # TODO Check the average (We take the mean of the entropy right now)
-                y_hat = reward + gamma * (1 - done) * (y_hat_q - action_entropy)
-
-                ## UPDATES OF THE CRITIC NETWORKS
-
-                q1_forward = soft_q1(state.float(), action.float())
-                q2_forward = soft_q2(state.float(), action.float())
-
-                # Q1 Network
-                q_loss = F.mse_loss(q1_forward.float(), y_hat.float())\
-                         + F.mse_loss(q2_forward.float(), y_hat.float())
-                soft_q1.optimizer.zero_grad()
-                soft_q2.optimizer.zero_grad()
-                q_loss.backward()
-                soft_q1.optimizer.step()
-                soft_q2.optimizer.step()
-
-                # q1_forward = soft_q1(state.float(), action.float())
-                # q1_loss = F.mse_loss(q1_forward.float(), y_hat.float())
-                # q1_loss.backward(retain_graph=True)
-                # soft_q1.optimizer.step()
-                #
-                # # Q2 Network
-                # q2_forward = soft_q2(state.float(), action.float())
-                # q2_loss = F.mse_loss(q2_forward.float(), y_hat.float().float())
-                # q2_loss.backward()
-                # soft_q2.optimizer.step()
-
-                # Update Policy Network (ACTOR)
-                action_new, action_entropy_new = policy.sample(torch.Tensor(state))
-                q1_forward = soft_q1(state.float(), action_new.float())
-                q2_forward = soft_q2(state.float(), action_new.float())
-                q_forward = torch.min(q1_forward, q2_forward)
-
-                policy_loss = (q_forward-(alpha * action_entropy_new)).mean()
-                policy.zero_grad()
-                policy_loss.backward()#torch.Tensor(sample_batch_size, 1))
-                policy.optimizer.step()
-
-                soft_q1_targets.update_params(soft_q1.state_dict(), tau)
-                soft_q2_targets.update_params(soft_q2.state_dict(), tau)
-
-                #     logging.debug(param)
-                #     logging.debug(target_param)
-
-                # for graph
-
-                policy_loss_incr += policy_loss.item()
-                q_loss_incr += q_loss.item()
-
+                if bool(done):
+                    logging.debug("Annd we are dead##################################################################")
+                    break
 
             # for graph
+            plotter.add_to_lists(reward=ep_reward,
+                                 length=length,
+                                 policy_loss=policy_loss_incr,
+                                 q_loss=q_loss_incr)
 
             if _episode % 5 == 0:
                 logging.info(f"EPISODE {str(_episode).ljust(4)} | reward {ep_reward:.4f} | policy-loss {policy_loss_incr:.4f}")
