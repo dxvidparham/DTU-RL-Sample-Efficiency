@@ -102,9 +102,10 @@ def prepare_hyperparameter_tuning(hyperparameter_space, max_evals=2):
         raise
 
 
-def run_sac(hyperparameter_space: dict) -> Dict:
+def run_sac(hyperparameter_space: dict, video) -> Dict:
     """
     Method to to start the SAC algorithm on a certain problem
+    :param video: video object
     :param hyperparameter_space: Dict with the hyperparameter from the Argument parser
     :return:
     """
@@ -134,8 +135,13 @@ def run_sac(hyperparameter_space: dict) -> Dict:
 
     # Init the Plotter
     plotter = Plotter(hyperparameter_space.get('episodes'))
+    # initialize video
+
+    video.init()
+    recording_interval = hyperparameter_space.get('recording_interval')
     try:
         for _episode in range(hyperparameter_space.get('episodes')):
+
             # for graph
             ep_reward, policy_loss_incr, q_loss_incr, length = 0, 0, 0, 0
             logging.debug(f"Episode {_episode + 1}")
@@ -144,7 +150,9 @@ def run_sac(hyperparameter_space: dict) -> Dict:
             current_state = env.reset()
             logging.debug(f"Max Steps {hyperparameter_space.get('max_steps')}")
 
-            for step in range(100000):  # range(hyperparameter_space.get('max_steps')):
+
+
+            for step in range(10000):  # range(hyperparameter_space.get('max_steps')):
                 # Do the next step
                 logging.debug(f"Episode {_episode + 1} | step {step}")
 
@@ -175,9 +183,18 @@ def run_sac(hyperparameter_space: dict) -> Dict:
                 # Update current step
                 current_state = s1
 
+                if _episode % recording_interval == 0:
+                    video.record(env)
+
                 if bool(done):
                     logging.debug("Annd we are dead##################################################################")
+
                     break
+
+            if _episode % recording_interval == 0:
+                video.save(_episode)
+                video.reset()
+
 
             # for graph
             plotter.add_to_lists(reward=ep_reward,
@@ -188,11 +205,14 @@ def run_sac(hyperparameter_space: dict) -> Dict:
             if _episode % 5 == 0:
                 logging.info(f"EPISODE {str(_episode).ljust(4)} | reward {ep_reward:.4f} | policy-loss {policy_loss_incr:.4f}")
 
+
+
     except KeyboardInterrupt as e:
         logging.error("KEYBOARD INTERRUPT")
         raise
     finally:
         plotter.plot()
+
 
     rew, _, q_losses, policy_losses = plotter.get_lists()
 

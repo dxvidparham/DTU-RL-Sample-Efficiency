@@ -20,6 +20,16 @@ def parse(defaults: dict) -> dict:
                         help='Environment Name')
 
     # #############################################################
+    # Video
+    # #############################################################
+    parser.add_argument('--save_video',
+                        default=False,
+                        action='store_true')
+    parser.add_argument('--recording_interval',
+                        default=defaults['recording_interval'],
+                        type=int)
+
+    # #############################################################
     # Neural Networks and its Parameters
     # #############################################################
 
