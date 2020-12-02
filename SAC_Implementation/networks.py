@@ -41,6 +41,9 @@ class ValueNetwork(nn.Module):
 
         self.optimizer = optim.Adam(self.parameters(), lr=lr_value)
 
+        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        self.to(self.device)
+
     def forward(self, state):
         state_value = F.relu(self.linear1(state))
         state_value = F.relu(self.linear2(state_value))
@@ -73,6 +76,9 @@ class SoftQNetwork(nn.Module):
         self.linear3.bias.data.uniform_(-init_w, init_w)
 
         self.optimizer = optim.Adam(self.parameters(), lr=lr_critic)
+
+        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        self.to(self.device)
 
     def forward(self, state, action):
         action_value = torch.cat([state, action], 1)
@@ -130,6 +136,9 @@ class PolicyNetwork(nn.Module):
 
         self.optimizer = optim.Adam(self.parameters(), lr=lr_policy)
 
+        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        self.to(self.device)
+
     def forward(self, state):
         x = F.relu(self.linear1(state))
         x = F.relu(self.linear2(x))
@@ -150,7 +159,7 @@ class PolicyNetwork(nn.Module):
 
         normal = Normal(mean, std)
         z = normal.rsample()
-        action = torch.tanh(z)
+        action = torch.tanh(z).to(self.device)
 
         # log_pi = normal.log_prob(z) - torch.log(1 - action.pow(2) + epsilon)
         # log_pi = log_pi.sum(1, keepdim=True)

@@ -3,6 +3,7 @@ from copy import deepcopy
 
 from matplotlib import pyplot as plt
 import numpy as np
+#import cumpy as np
 
 import torch
 import torch.nn as nn
@@ -34,31 +35,6 @@ def show_replay():
     return HTML(data='''
         <video width="360" height="auto" alt="test" controls><source src="data:video/mp4;base64,{0}" type="video/mp4" /></video>'''
                 .format(encoded.decode('ascii')))
-
-
-def get_variable(x):
-    """ Converts tensors to cuda, if available. """
-    if torch.cuda.is_available():
-        return x.cuda()
-    return x
-
-
-def get_numpy(x):
-    """ Get numpy array for both cuda and not. """
-    if torch.cuda.is_available():
-        return x.cpu().data.numpy()
-    return x.data.numpy()
-
-
-def one_hot(l):
-    def one_hot2(i):
-        """
-        One-hot encoder for the states
-        """
-        a = np.zeros((len(i), l))
-        a[range(len(i)), i] = 1
-        return a
-    return one_hot2
 
 ##
 def run_sac(hyperparameter_space: dict) -> None:
@@ -125,7 +101,7 @@ def run_sac(hyperparameter_space: dict) -> None:
     # ### Actor The actor tries to mimic the Environment and tries to find the expected reward using the next state
     # and the action (from the policy network)
 
-    # We need to networks: 1 for the value function first
+    # We need two networks: 1 for the value function first
     soft_q1 = SoftQNetwork(state_dim, action_dim, hidden_dim, lr_critic)
     soft_q2 = SoftQNetwork(state_dim, action_dim, hidden_dim, lr_critic)
 
