@@ -10,8 +10,7 @@ from torch.distributions.normal import Normal
 
 import copy
 """
-SAC uses three different networks:
-a state value function V parameterized by ψ,
+SAC uses two different networks:
 a soft Q-function Q parameterized by θ,
 and a policy function π parameterized by ϕ
 """
@@ -92,9 +91,7 @@ class SoftQNetwork(nn.Module):
         for k in params.keys():
             old_params_ = copy.deepcopy(params[k])
 
-
             params[k] = torch.multiply(params[k], (1 - tau)) + torch.multiply(new_params[k], tau)
-
 
             if (params[k] != params[k]).numpy().any():
                 logging.error("WE SAW NONE VALUES:")
@@ -146,7 +143,7 @@ class PolicyNetwork(nn.Module):
         mean = self.mean_linear(x)
 
         # Squash it in -1 1
-        mean = F.tanh(mean)
+        mean = torch.tanh(mean)
 
         log_std = self.log_std_linear(x)
         log_std = torch.clamp(log_std, self.log_std_min, self.log_std_max)
@@ -164,7 +161,7 @@ class PolicyNetwork(nn.Module):
         # log_pi = normal.log_prob(z) - torch.log(1 - action.pow(2) + epsilon)
         # log_pi = log_pi.sum(1, keepdim=True)
 
-        residual = (-0.5 * z.pow(2)-log_std).sum(-1,keepdim=True)
+        residual = (-0.5 * z.pow(2)-log_std).sum(-1, keepdim=True)
         log_pi = residual - 0.5*np.log(2*np.pi)*z.size(-1)
 
         return action, log_pi
