@@ -23,6 +23,9 @@ class Plotter:
         self.policy_losses.append(policy_loss)
         self.q_losses.append(q_loss)
 
+    def get_lists(self):
+        return self.rewards, self.lengths, self.policy_losses, self.q_losses
+
     def plot(self):
 
         _eps = min(self.num_episodes, len(self.rewards))
@@ -52,7 +55,7 @@ class Plotter:
 
         plt.tight_layout()
 
-        now = datetime.now().strftime("%d_%m_%Y_-%H_%M_%S")
+        now = datetime.now().strftime("%d_%m_%Y-%H_%M_%S")
         filename = f"plot_{now}.png"
         plt.savefig('figures/' + filename)
 

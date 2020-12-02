@@ -1,20 +1,51 @@
 ## Imports
+
+import pickle
 import sys
-import time
+from datetime import datetime
+from typing import Dict
 
 import numpy as np
 
 import torch
-import torch.nn.functional as F
+
+from SAC_Implementation.SACAlgorithm import SACAlgorithm
 from plotter import Plotter
 
+from hyperopt import fmin, tpe, space_eval, Trials, STATUS_OK
+
 import logging
-
 import dmc2gym
-
 import LogHelper
 from SAC_Implementation.ReplayBuffer import ReplayBuffer
 from SAC_Implementation.Networks import SoftQNetwork, PolicyNetwork
+
+
+def initialize_environment(domain_name, task_name, seed, frame_skip):
+    # env = dmc2gym.make(domain_name="walker",
+    #                    task_name="walk",
+    #                    seed=1,
+    #                    frame_skip=1)
+
+    LogHelper.print_step_log(f"Initialize Environment: {domain_name}/{task_name} ...")
+
+    env = dmc2gym.make(domain_name=domain_name,
+                       task_name=task_name,
+                       seed=seed,
+                       frame_skip=frame_skip)
+
+    # Debug logging to check environment specs
+    s = env.reset()
+    a = env.action_space.sample()
+    action_dim = env.action_space.shape[0]
+    state_dim = env.observation_space.shape[0]
+
+    logging.debug(f'Sample state: {s}')
+    logging.debug(f'Sample action:{a}')
+    logging.debug(f'State DIM: {state_dim}')
+    logging.debug(f'Action DIM:{action_dim}')
+
+    return env, action_dim, state_dim
 
 
 def show_replay():
@@ -46,81 +77,32 @@ def get_numpy(x):
     return x.data.numpy()
 
 
-def one_hot(l):
-    def one_hot2(i):
-        """
-        One-hot encoder for the states
-        """
-        a = np.zeros((len(i), l))
-        a[range(len(i)), i] = 1
-        return a
+def prepare_hyperparameter_tuning(hyperparameter_space, max_evals=2):
+    try:
+        trials = Trials()
+        best = fmin(run_sac,
+                    hyperparameter_space,
+                    algo=tpe.suggest,
+                    trials=trials,
+                    max_evals=max_evals)
 
-    return one_hot2
+        logging.info("WE ARE DONE. THE BEST TRIAL IS:")
+        LogHelper.print_dict({**hyperparameter_space, **best}, "Final Parameters")
 
-
-def initialize_environment(domain_name, task_name, seed, frame_skip):
-    # env = dmc2gym.make(domain_name="walker",
-    #                    task_name="walk",
-    #                    seed=1,
-    #                    frame_skip=1)
-
-    LogHelper.print_step_log(f"Initialize Environment: {domain_name}/{task_name} ...")
-
-    env = dmc2gym.make(domain_name=domain_name,
-                       task_name=task_name,
-                       seed=seed,
-                       frame_skip=frame_skip)
-
-    # Debug logging to check environment specs
-    s = env.reset()
-    a = env.action_space.sample()
-    action_dim = env.action_space.shape[0]
-    state_dim = env.observation_space.shape[0]
-
-    logging.debug(f'Sample state: {s}')
-    logging.debug(f'Sample action:{a}')
-    logging.debug(f'State DIM: {state_dim}')
-    logging.debug(f'Action DIM:{action_dim}')
-
-    return env, action_dim, state_dim
+        filename = datetime.now().strftime("%d_%m_%Y-%H_%M_%S")
+        file_path = f"results/hp_result_{filename}.model"
+        with open(file_path, 'wb') as f:
+            pickle.dump(trials.results, f)
+        f.close()
+        logging.info("--------------------------------------------")
+        logging.info(f"For more information see {file_path}")
+        # return run_sac(hyperparameter_space)
+    except KeyboardInterrupt as e:
+        logging.error("KEYBOARD INTERRUPT")
+        raise
 
 
-def initialize_nets_and_buffer(state_dim: int,
-                               action_dim: int,
-                               q_hidden: int,
-                               policy_hidden: int,
-                               learning_rates: dict,
-                               replay_buffer_size: int
-                               ) -> (
-        SoftQNetwork, SoftQNetwork, SoftQNetwork, SoftQNetwork, PolicyNetwork, ReplayBuffer):
-    """
-    Method to initialize the neural networks as well as the replay buffer
-    :param state_dim: Dimension of the state space
-    :param action_dim: Dimension of the action space
-    :param q_hidden: Hidden Size of the Q networks
-    :param policy_hidden: Hidden Size of the Policy Network
-    :param learning_rates: Learning Rates in an dict with keys "critic"(q-networks) and "actor"(policy)
-    :param replay_buffer_size: Size of the replayBuffer
-    :return: Returns the networks (Soft1, soft2, target1,target2, Policy, Buffer)
-    """
-    # We need to networks: 1 for the value function first
-    soft_q1 = SoftQNetwork(state_dim, action_dim, q_hidden, learning_rates.get('critic'))
-    soft_q2 = SoftQNetwork(state_dim, action_dim, q_hidden, learning_rates.get('critic'))
-
-    # Then another one for calculating the targets
-    soft_q1_targets = SoftQNetwork(state_dim, action_dim, q_hidden, learning_rates.get('critic'))
-    soft_q2_targets = SoftQNetwork(state_dim, action_dim, q_hidden, learning_rates.get('critic'))
-
-    policy = PolicyNetwork(state_dim, action_dim, policy_hidden, learning_rates.get('actor'))
-
-    # Initialize the Replay Buffer
-    buffer = ReplayBuffer(state_dim, action_dim,
-                          replay_buffer_size)
-
-    return soft_q1, soft_q2, soft_q1_targets, soft_q2_targets, policy, buffer
-
-
-def run_sac(hyperparameter_space: dict) -> None:
+def run_sac(hyperparameter_space: dict) -> Dict:
     """
     Method to to start the SAC algorithm on a certain problem
     :param hyperparameter_space: Dict with the hyperparameter from the Argument parser
@@ -150,7 +132,6 @@ def run_sac(hyperparameter_space: dict) -> None:
                            "replay_buffer_size": hyperparameter_space.get('replay_buffer_size')
                        })
 
-
     # Init the Plotter
     plotter = Plotter(hyperparameter_space.get('episodes'))
     try:
@@ -163,7 +144,7 @@ def run_sac(hyperparameter_space: dict) -> None:
             current_state = env.reset()
             logging.debug(f"Max Steps {hyperparameter_space.get('max_steps')}")
 
-            for step in range(100000): # range(hyperparameter_space.get('max_steps')):
+            for step in range(100000):  # range(hyperparameter_space.get('max_steps')):
                 # Do the next step
                 logging.debug(f"Episode {_episode + 1} | step {step}")
 
@@ -204,91 +185,23 @@ def run_sac(hyperparameter_space: dict) -> None:
                                  policy_loss=policy_loss_incr,
                                  q_loss=q_loss_incr)
 
+            if _episode % 5 == 0:
+                logging.info(f"EPISODE {str(_episode).ljust(4)} | reward {ep_reward:.4f} | policy-loss {policy_loss_incr:.4f}")
+
     except KeyboardInterrupt as e:
         logging.error("KEYBOARD INTERRUPT")
+        raise
     finally:
         plotter.plot()
 
+    rew, _, q_losses, policy_losses = plotter.get_lists()
 
-class SACAlgorithm:
-    def __init__(self, env, param: dict):
-        """
-
-        :param env:
-        :param param: dict which needs following parameter:
-            [hidden_dim, lr_critic, lr_policy, alpha, tau, gamma, sample_batch_size]
-        """
-
-        self.action_dim = env.action_space.shape[0]
-        self.state_dim = env.observation_space.shape[0]
-
-        logging.debug(param)
-
-        self.soft_q1, self.soft_q2, self.soft_q1_targets, self.soft_q2_targets, self.policy, self.buffer = initialize_nets_and_buffer(
-            state_dim=self.state_dim,
-            action_dim=self.action_dim,
-            q_hidden=param.get('hidden_dim'),
-            policy_hidden=param.get('hidden_dim'),
-            learning_rates={
-                'critic': param.get('lr_critic'),
-                'actor': param.get('lr_actor')
-            },
-            replay_buffer_size=param.get('replay_buffer_size'),
-        )
-        self.sample_batch_size, self.alpha, self.tau, self.gamma = (param.get('sample_batch_size'),
-                                                                    param.get('alpha'),
-                                                                    param.get('tau'),
-                                                                    param.get('gamma'))
-
-    def update(self):
-        if self.buffer.length < self.sample_batch_size:
-            return 0, 0
-
-        # Sample from Replay buffer
-        state, action, reward, new_state, done, _ = self.buffer.sample(batch_size=self.sample_batch_size)
-
-        # Computation of targets
-        # Here we are using 2 different Q Networks and afterwards choose the lower reward as regulator.
-        y_hat_q1 = self.soft_q1_targets(state.float(), action.float())
-        y_hat_q2 = self.soft_q2_targets(state.float(), action.float())
-        y_hat_q = torch.min(y_hat_q1, y_hat_q2)
-
-        # Sample the action for the new state using the policy network
-        action, action_entropy = self.policy.sample(torch.Tensor(new_state))
-
-        # We calculate the estimated reward for the next state
-        y_hat = reward + self.gamma * (1 - done) * (y_hat_q - action_entropy)
-
-        ## UPDATES OF THE CRITIC NETWORKS
-        q1_forward = self.soft_q1(state.float(), action.float())
-        q2_forward = self.soft_q2(state.float(), action.float())
-
-        # Q1 Network
-        q_loss = F.mse_loss(q1_forward.float(), y_hat.float()) \
-                 + F.mse_loss(q2_forward.float(), y_hat.float())
-        self.soft_q1.optimizer.zero_grad()
-        self.soft_q2.optimizer.zero_grad()
-        q_loss.backward()
-        self.soft_q1.optimizer.step()
-        self.soft_q2.optimizer.step()
-
-        # Update Policy Network (ACTOR)
-        action_new, action_entropy_new = self.policy.sample(torch.Tensor(state))
-        q1_forward = self.soft_q1(state.float(), action_new.float())
-        q2_forward = self.soft_q2(state.float(), action_new.float())
-        q_forward = torch.min(q1_forward, q2_forward)
-
-        policy_loss = (q_forward - (self.alpha * action_entropy_new)).mean()
-        self.policy.zero_grad()
-        policy_loss.backward()  # torch.Tensor(sample_batch_size, 1))
-        self.policy.optimizer.step()
-
-        self.soft_q1_targets.update_params(self.soft_q1.state_dict(), self.tau)
-        self.soft_q2_targets.update_params(self.soft_q2.state_dict(), self.tau)
-
-        # for graph
-        return policy_loss.item(), q_loss.item()
-
-    def sample_action(self, state: torch.Tensor):
-        action, log_pi = self.policy.sample(state)
-        return action.detach(), log_pi
+    # Give back the error which should be optimized by the hyperparameter tuner
+    max_reward = max(np.array(rew))
+    return {'loss': -max_reward,
+            'status': STATUS_OK,
+            'model': sac,
+            'max_reward': max_reward,
+            'q_losses': q_losses,
+            'policy_losses': policy_losses,
+            'rewards': rew}
