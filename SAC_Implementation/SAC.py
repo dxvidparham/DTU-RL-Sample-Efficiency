@@ -192,7 +192,7 @@ def run_sac(hyperparameter_space: dict, video) -> Dict:
                     break
 
             if _episode % recording_interval == 0:
-                video.save(f"{_episode}.mp4")
+                video.save(_episode)
                 video.reset()
 
 

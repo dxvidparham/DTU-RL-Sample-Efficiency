@@ -15,7 +15,6 @@ DEFAULT_LOG_FILE = f"logging_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.
 
 
 DEFAULT_VIDEO_DIR = "videos"
-DEFAULT_VIDEO_FILE = f"video_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
 
 parameter = {
     # Logging
@@ -79,7 +78,7 @@ mpl_logger = logging.getLogger('matplotlib')
 mpl_logger.setLevel(logging.WARNING)
 
 #Initialize video object
-video = VideoRecorder(DEFAULT_VIDEO_DIR, DEFAULT_VIDEO_FILE if args.get('save_video') else None)
+video = VideoRecorder(DEFAULT_VIDEO_DIR if args.get('save_video') else None)
 
 
 # The import must be done down here to allow the logging configuration
