@@ -121,6 +121,14 @@ def parse(defaults: dict) -> dict:
                         # TODO Add more meaningful description
                         help='Update Episodes for the Training (Offline-Policy-learning)')
 
+    # ############################################################
+    # Hyperparameter optimization stuff
+    # ############################################################
+    parser.add_argument('--max_evals',
+                        default=defaults['max_evals'],
+                        type=int,
+                        # TODO Add more meaningful description
+                        help='Number of Hyperparameter tests')
 
     args = vars(parser.parse_args())
     return args
