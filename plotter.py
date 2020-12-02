@@ -30,10 +30,15 @@ class Plotter:
 
         _eps = min( self.num_episodes , len(self.rewards))
 
+        #plt.style.use('fivethirtyeight')
+        plt.style.use('ggplot')
+        #plt.style.use('default')
         plt.figure(figsize=(16, 9))
+        #plt.ylabel('Success Rate', fontsize=25)
+        #plt.xlabel('Iteration Number', fontsize=25, labelpad=-4)
         plt.subplot(411)
         plt.title('training rewards')
-        plt.plot(range(1, _eps + 1), self.rewards)
+        plt.plot(range(1, _eps + 1), self.rewards, label='hello')
         plt.plot(moving_average(self.rewards))
         plt.xlim([0, _eps])
         plt.subplot(412)
@@ -53,7 +58,6 @@ class Plotter:
         plt.xlim([0, _eps])
 
         plt.tight_layout()
-
         now = datetime.now().strftime("%d%m%Y%H%M%S")
         filename = f"plot_{now}.png"
         plt.savefig('figures/' + filename)
