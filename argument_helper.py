@@ -140,5 +140,15 @@ def parse(defaults: dict) -> dict:
                         # TODO Add more meaningful description
                         help='Number of Hyperparameter tests')
 
+    # ############################################################
+    # Specify GPU ID
+    # ############################################################
+
+    parser.add_argument('--gpu_device',
+                        default=defaults['gpu_device'],
+                        type=int,
+                        # TODO Add more meaningful description
+                        help='Specify the GPU to use. Range: 0-3')
+
     args = vars(parser.parse_args())
     return args

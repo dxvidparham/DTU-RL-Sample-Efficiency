@@ -13,7 +13,8 @@ def initialize_nets_and_buffer(state_dim: int,
                                q_hidden: int,
                                policy_hidden: int,
                                learning_rates: dict,
-                               replay_buffer_size: int
+                               replay_buffer_size: int,
+                               gpu_device: int
                                ) -> (
         SoftQNetwork, SoftQNetwork, SoftQNetwork, SoftQNetwork, PolicyNetwork, ReplayBuffer):
     """
@@ -27,14 +28,14 @@ def initialize_nets_and_buffer(state_dim: int,
     :return: Returns the networks (Soft1, soft2, target1,target2, Policy, Buffer)
     """
     # We need to networks: 1 for the value function first
-    soft_q1 = SoftQNetwork(state_dim, action_dim, q_hidden, learning_rates.get('critic'))
-    soft_q2 = SoftQNetwork(state_dim, action_dim, q_hidden, learning_rates.get('critic'))
+    soft_q1 = SoftQNetwork(state_dim, action_dim, q_hidden, learning_rates.get('critic'), gpu_device)
+    soft_q2 = SoftQNetwork(state_dim, action_dim, q_hidden, learning_rates.get('critic'), gpu_device)
 
     # Then another one for calculating the targets
-    soft_q1_targets = SoftQNetwork(state_dim, action_dim, q_hidden, learning_rates.get('critic'))
-    soft_q2_targets = SoftQNetwork(state_dim, action_dim, q_hidden, learning_rates.get('critic'))
+    soft_q1_targets = SoftQNetwork(state_dim, action_dim, q_hidden, learning_rates.get('critic'), gpu_device)
+    soft_q2_targets = SoftQNetwork(state_dim, action_dim, q_hidden, learning_rates.get('critic'), gpu_device)
 
-    policy = PolicyNetwork(state_dim, action_dim, policy_hidden, learning_rates.get('actor'))
+    policy = PolicyNetwork(state_dim, action_dim, policy_hidden, learning_rates.get('actor'), gpu_device)
 
     # Initialize the Replay Buffer
     buffer = ReplayBuffer(state_dim, action_dim,
@@ -54,6 +55,7 @@ class SACAlgorithm:
 
         self.action_dim = env.action_space.shape[0]
         self.state_dim = env.observation_space.shape[0]
+        self.device = torch.device(f'cuda:{param.get("gpu_device")}' if torch.cuda.is_available() else 'cpu')
 
         logging.debug(param)
 
@@ -67,6 +69,7 @@ class SACAlgorithm:
                 'actor': param.get('lr_actor')
             },
             replay_buffer_size=param.get('replay_buffer_size'),
+            gpu_device=param.get('gpu_device')
         )
         self.sample_batch_size, self.alpha, self.tau, self.gamma = (param.get('sample_batch_size'),
                                                                     param.get('alpha'),
@@ -91,15 +94,15 @@ class SACAlgorithm:
         # Sample the action for the new state using the policy network
 
         # We calculate the estimated reward for the next state
-        y_hat = reward + self.gamma * (1 - done) * (y_hat_q - action_entropy)
+        y_hat = reward + self.gamma * (1 - done) * (y_hat_q.cpu().data.numpy() - action_entropy.cpu().data.numpy())
 
         ## UPDATES OF THE CRITIC NETWORKS
         q1_forward = self.soft_q1(state.float(), action.float())
         q2_forward = self.soft_q2(state.float(), action.float())
 
         # Q1 Network
-        q_loss = F.mse_loss(q1_forward.float(), y_hat.float()) \
-                 + F.mse_loss(q2_forward.float(), y_hat.float())
+        q_loss = F.mse_loss(q1_forward.float(), y_hat.float().to(device=self.device)) \
+                 + F.mse_loss(q2_forward.float(), y_hat.float().to(device=self.device))
         self.soft_q1.optimizer.zero_grad()
         self.soft_q2.optimizer.zero_grad()
 

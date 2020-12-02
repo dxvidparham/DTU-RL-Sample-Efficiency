@@ -7,6 +7,7 @@ from typing import Dict
 
 import numpy as np
 
+
 import torch
 
 from SAC_Implementation.SACAlgorithm import SACAlgorithm
@@ -62,21 +63,6 @@ def show_replay():
         <video width="360" height="auto" alt="test" controls><source src="data:video/mp4;base64,{0}" type="video/mp4" /></video>'''
                 .format(encoded.decode('ascii')))
 
-
-def get_variable(x):
-    """ Converts tensors to cuda, if available. """
-    if torch.cuda.is_available():
-        return x.cuda()
-    return x
-
-
-def get_numpy(x):
-    """ Get numpy array for both cuda and not. """
-    if torch.cuda.is_available():
-        return x.cpu().data.numpy()
-    return x.data.numpy()
-
-
 def prepare_hyperparameter_tuning(hyperparameter_space, max_evals=2):
     try:
         trials = Trials()
@@ -130,7 +116,8 @@ def run_sac(hyperparameter_space: dict, video) -> Dict:
                            "tau": hyperparameter_space.get('tau'),
                            "gamma": hyperparameter_space.get('gamma'),
                            "sample_batch_size": hyperparameter_space.get('sample_batch_size'),
-                           "replay_buffer_size": hyperparameter_space.get('replay_buffer_size')
+                           "replay_buffer_size": hyperparameter_space.get('replay_buffer_size'),
+                           "gpu_device": hyperparameter_space.get('gpu_device')
                        })
 
     # Init the Plotter
@@ -164,6 +151,10 @@ def run_sac(hyperparameter_space: dict, video) -> Dict:
                 logging.debug(f"Our action we chose is : {action_mean}")
                 logging.debug(f"The state is : {current_state}")
                 logging.debug(f"Our action we chose is : {action_mean}")
+                #s1, r, done, _ = env.step(np.array(action_mean))
+                # print("######################################")
+                # logging.debug(action_mean)
+                # print("######################################")
                 s1, r, done, _ = env.step(np.array(action_mean))
 
                 logging.debug(f"The reward we got is {r} | {done}")

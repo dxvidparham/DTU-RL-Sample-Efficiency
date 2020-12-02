@@ -16,41 +16,6 @@ and a policy function π parameterized by ϕ
 """
 
 
-# ACTOR
-class ValueNetwork(nn.Module):
-    """
-    The ValueNetwork provides feedback to our PolicyNetwork if certain states are valueable or not.
-    """
-
-    def __init__(
-            self,
-            input_dim,
-            hidden_dim,
-            lr_value,
-            output_dim=1,
-            init_w=3e-3,
-    ):
-        super(ValueNetwork, self).__init__()
-        self.linear1 = nn.Linear(input_dim, hidden_dim)
-        self.linear2 = nn.Linear(hidden_dim, hidden_dim)
-        self.linear3 = nn.Linear(hidden_dim, output_dim)
-
-        self.linear3.weight.data.uniform_(-init_w, init_w)
-        self.linear3.bias.data.uniform_(-init_w, init_w)
-
-        self.optimizer = optim.Adam(self.parameters(), lr=lr_value)
-
-        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        self.to(self.device)
-
-    def forward(self, state):
-        state_value = F.relu(self.linear1(state))
-        state_value = F.relu(self.linear2(state_value))
-        state_value_output = self.linear3(state_value)
-
-        return state_value_output
-
-
 # CRITIC
 class SoftQNetwork(nn.Module):
     """
@@ -63,6 +28,7 @@ class SoftQNetwork(nn.Module):
             action_dim,
             hidden_dim,
             lr_critic,
+            gpu_device,
             output_dim=1,
             init_w=3e-3,
     ):
@@ -76,11 +42,11 @@ class SoftQNetwork(nn.Module):
 
         self.optimizer = optim.Adam(self.parameters(), lr=lr_critic)
 
-        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device(f'cuda:{gpu_device}' if torch.cuda.is_available() else 'cpu')
         self.to(self.device)
 
     def forward(self, state, action):
-        action_value = torch.cat([state, action], 1)
+        action_value = torch.cat([state.to(device=self.device), action.to(device=self.device)], 1)
         action_value = F.relu(self.linear1(action_value))
         action_value = F.relu(self.linear2(action_value))
         action_value_output = self.linear3(action_value)
@@ -93,7 +59,7 @@ class SoftQNetwork(nn.Module):
 
             params[k] = torch.multiply(params[k], (1 - tau)) + torch.multiply(new_params[k], tau)
 
-            if (params[k] != params[k]).numpy().any():
+            if (params[k] != params[k]).cpu().data.numpy().any():
                 logging.error("WE SAW NONE VALUES:")
                 logging.error(f"new_params: {new_params[k]}")
                 logging.error(f"old_params: {old_params_}")
@@ -112,6 +78,7 @@ class PolicyNetwork(nn.Module):
             action_dim,
             hidden_dim,
             lr_policy,
+            gpu_device,
             init_w=3e-3,
             log_std_min=-20,
             log_std_max=2,
@@ -133,7 +100,7 @@ class PolicyNetwork(nn.Module):
 
         self.optimizer = optim.Adam(self.parameters(), lr=lr_policy)
 
-        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device(f'cuda:{gpu_device}' if torch.cuda.is_available() else 'cpu')
         self.to(self.device)
 
     def forward(self, state):
@@ -151,7 +118,7 @@ class PolicyNetwork(nn.Module):
         return mean, log_std
 
     def sample(self, state, epsilon=1e-6):
-        mean, log_std = self.forward(state)
+        mean, log_std = self.forward(state.to(device=self.device))
         std = log_std.exp()
 
         normal = Normal(mean, std)
@@ -164,4 +131,4 @@ class PolicyNetwork(nn.Module):
         residual = (-0.5 * z.pow(2)-log_std).sum(-1, keepdim=True)
         log_pi = residual - 0.5*np.log(2*np.pi)*z.size(-1)
 
-        return action, log_pi
+        return action.cpu(), log_pi

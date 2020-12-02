@@ -48,7 +48,10 @@ parameter = {
     "max_steps": 10000,
 
     # Hyperparameter-tuning
-    "max_evals": 10
+    "max_evals": 10,
+
+    # ID of the GPU to use
+    "gpu_device": 3,
 }
 
 hyperparameter_space = {
