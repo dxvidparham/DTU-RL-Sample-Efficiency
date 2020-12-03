@@ -106,7 +106,6 @@ def run_sac(hyperparameter_space: dict, video) -> Dict:
 
     LogHelper.print_dict(hyperparameter_space, "Hyperparameter")
     LogHelper.print_big_log("Start Training")
-    logging.debug(hyperparameter_space)
     sac = SACAlgorithm(env=env,
                        param={
                            "hidden_dim": hyperparameter_space.get('hidden_dim'),
@@ -129,35 +128,23 @@ def run_sac(hyperparameter_space: dict, video) -> Dict:
     try:
         for _episode in range(hyperparameter_space.get('episodes')):
 
+            logging.debug(f"Start EPISODE {_episode+1}")
             # for graph
             ep_reward, policy_loss_incr, q_loss_incr, length = 0, 0, 0, 0
-            logging.debug(f"Episode {_episode + 1}")
-
             # Observe state and action
             current_state = env.reset()
-            logging.debug(f"Max Steps {hyperparameter_space.get('max_steps')}")
 
-
-
-            for step in range(10000):  # range(hyperparameter_space.get('max_steps')):
+            for step in range(hyperparameter_space.get('max_steps')):
                 # Do the next step
-                logging.debug(f"Episode {_episode + 1} | step {step}")
-
                 if _episode > 10:
                     action_mean, _ = sac.sample_action(torch.Tensor(current_state))
                 else:
                     action_mean = env.action_space.sample()
 
-                logging.debug(f"Our action we chose is : {action_mean}")
-                logging.debug(f"The state is : {current_state}")
-                logging.debug(f"Our action we chose is : {action_mean}")
-                #s1, r, done, _ = env.step(np.array(action_mean))
-                # print("######################################")
-                # logging.debug(action_mean)
-                # print("######################################")
                 s1, r, done, _ = env.step(np.array(action_mean))
 
-                logging.debug(f"The reward we got is {r} | {done}")
+                logging.debug(f"--EPISODE {(str(_episode + 1).ljust(2))}.{str(step).ljust(4)} | {LogHelper.colored_log_text(f'rew: {r:.4f}', 'DARKGREEN')} | action: {action_mean} ")
+
                 sac.buffer.add(obs=current_state,
                                action=action_mean,
                                reward=r,
@@ -165,10 +152,17 @@ def run_sac(hyperparameter_space: dict, video) -> Dict:
                                done=done)
                 ep_reward += r
 
-                _metric = sac.update()
+                _polo, _qlo = [], []
+                if sac.buffer.length < sac.sample_batch_size:
+                    for i in range(20):
+                        # Update the network
+                        _metric = sac.update()
 
-                policy_loss_incr += _metric[0]
-                q_loss_incr += _metric[1]
+                        _polo.append(_metric[0])
+                        _qlo.append(_metric[1])
+
+                policy_loss_incr = min(_polo)
+                q_loss_incr += min(_qlo)
                 length = step
 
                 # Update current step
@@ -178,14 +172,12 @@ def run_sac(hyperparameter_space: dict, video) -> Dict:
                     video.record(env)
 
                 if bool(done):
-                    logging.debug("Annd we are dead##################################################################")
-
                     break
 
             if _episode % recording_interval == 0:
                 video.save(_episode)
                 video.reset()
-
+                logging.debug("Save video")
 
             # for graph
             plotter.add_to_lists(reward=ep_reward,
@@ -193,10 +185,10 @@ def run_sac(hyperparameter_space: dict, video) -> Dict:
                                  policy_loss=policy_loss_incr,
                                  q_loss=q_loss_incr)
 
-            if _episode % 5 == 0:
-                logging.info(f"EPISODE {str(_episode).ljust(4)} | reward {ep_reward:.4f} | policy-loss {policy_loss_incr:.4f}")
-
-
+            if _episode % 1 == 0:
+                logging.info(f"EPISODE {str(_episode+1).ljust(4)} | reward {ep_reward:.4f} | policy-loss {policy_loss_incr:.4f}")
+            else:
+                logging.debug(f"EPISODE {str(_episode+1).ljust(4)} | reward {ep_reward:.4f} | policy-loss {policy_loss_incr:.4f}")
 
     except KeyboardInterrupt as e:
         logging.error("KEYBOARD INTERRUPT")

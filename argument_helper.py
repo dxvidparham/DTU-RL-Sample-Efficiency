@@ -146,7 +146,7 @@ def parse(defaults: dict) -> dict:
 
     parser.add_argument('--gpu_device',
                         default=defaults['gpu_device'],
-                        type=int,
+                        type=str,
                         # TODO Add more meaningful description
                         help='Specify the GPU to use. Range: 0-3')
 

@@ -59,16 +59,7 @@ class Plotter:
         plt.xlim([0, _eps])
 
         plt.tight_layout()
-<<<<<<< HEAD
-        now = datetime.now().strftime("%d%m%Y%H%M%S")
-=======
-
-<<<<<<< HEAD
-        now = datetime.now().strftime("%d_%m_%Y_-%H_%M_%S")
->>>>>>> 8cca2b44f5a5e395c9c55a541a0ba05ba856da39
-=======
         now = datetime.now().strftime("%d_%m_%Y-%H_%M_%S")
->>>>>>> d37c41d15da1400a540b3e6957276ff711a515b5
         filename = f"plot_{now}.png"
         plt.savefig('figures/' + filename)
 
