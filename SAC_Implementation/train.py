@@ -7,7 +7,6 @@ from typing import Dict
 
 import numpy as np
 
-
 import torch
 
 from SAC_Implementation.SACAlgorithm import SACAlgorithm
@@ -79,9 +78,11 @@ def prepare_hyperparameter_tuning(hyperparameter_space, max_evals=2):
 
         filename = datetime.now().strftime("%d_%m_%Y-%H_%M_%S")
         file_path = f"results/hp_result_{filename}.model"
+
         with open(file_path, 'wb') as f:
             pickle.dump(trials.results, f)
         f.close()
+
         logging.info("--------------------------------------------")
         logging.info(f"For more information see {file_path}")
         # return run_sac(hyperparameter_space)
@@ -133,38 +134,40 @@ def run_sac(hyperparameter_space: dict) -> Dict:
 
     video.init()
     recording_interval = hyperparameter_space.get('recording_interval')
+
     try:
         for _episode in range(hyperparameter_space.get('episodes')):
 
-            logging.debug(f"Start EPISODE {_episode+1}")
-            # for graph
+            logging.debug(f"Start EPISODE {_episode + 1}")
             ep_reward, policy_loss_incr, q_loss_incr, length = 0, 0, 0, 0
+
             # Observe state and action
             current_state = env.reset()
 
             for step in range(hyperparameter_space.get('max_steps')):
+
                 # Do the next step
-                if _episode > 10:
+                if _episode > -1:
                     action_mean, _ = sac.sample_action(torch.Tensor(current_state))
                 else:
                     action_mean = env.action_space.sample()
 
                 s1, r, done, _ = env.step(np.array(action_mean))
 
-                logging.debug(f"--EPISODE {(str(_episode + 1).ljust(2))}.{str(step).ljust(4)} | {LogHelper.colored_log_text(f'rew: {r:.4f}', 'DARKGREEN')} | action: {action_mean} ")
+                if (step + 1) == int(hyperparameter_space.get('max_steps')):
+                    done = False
 
-                sac.buffer.add(obs=current_state,
-                               action=action_mean,
-                               reward=r,
-                               next_obs=s1,
-                               done=done)
+                logging.debug(
+                    f"--EPISODE {(str(_episode + 1).ljust(2))}.{str(step).ljust(4)} | {LogHelper.colored_log_text(f'rew: {r:.4f}', 'DARKGREEN')} | action: {action_mean} ")
+
+                sac.buffer.add(obs=current_state, action=action_mean, reward=r, next_obs=s1, done=done)
                 ep_reward += r
 
                 _polo, _qlo = [], []
                 if sac.buffer.length > sac.sample_batch_size:
-                    for i in range(20):
+                    for i in range(sac.sample_batch_size):
                         # Update the network
-                        _metric = sac.update()
+                        _metric = sac.update(step)
 
                         _polo.append(_metric[0])
                         _qlo.append(_metric[1])
@@ -194,16 +197,17 @@ def run_sac(hyperparameter_space: dict) -> Dict:
                                  q_loss=q_loss_incr)
 
             if _episode % 1 == 0:
-                logging.info(f"EPISODE {str(_episode+1).ljust(4)} | reward {ep_reward:.4f} | policy-loss {policy_loss_incr:.4f}")
+                logging.info(
+                    f"EPISODE {str(_episode + 1).ljust(4)} |reward {ep_reward:.4f} | P-Loss {policy_loss_incr:.4f}")
             else:
-                logging.debug(f"EPISODE {str(_episode+1).ljust(4)} | reward {ep_reward:.4f} | policy-loss {policy_loss_incr:.4f}")
+                logging.debug(
+                    f"EPISODE {str(_episode + 1).ljust(4)} | reward {ep_reward:.4f} | policy-loss {policy_loss_incr:.4f}")
 
     except KeyboardInterrupt as e:
         logging.error("KEYBOARD INTERRUPT")
         raise
     finally:
         plotter.plot()
-
 
     rew, _, q_losses, policy_losses = plotter.get_lists()
 

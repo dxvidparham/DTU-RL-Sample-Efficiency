@@ -1,4 +1,5 @@
 import logging
+from copy import deepcopy
 
 import torch
 
@@ -31,8 +32,8 @@ def initialize_nets_and_buffer(state_dim: int,
     soft_q2 = SoftQNetwork(state_dim, action_dim, q_hidden, learning_rates.get('critic'), gpu_device)
 
     # Then another one for calculating the targets
-    soft_q1_targets = SoftQNetwork(state_dim, action_dim, q_hidden, learning_rates.get('critic'), gpu_device)
-    soft_q2_targets = SoftQNetwork(state_dim, action_dim, q_hidden, learning_rates.get('critic'), gpu_device)
+    soft_q1_targets = deepcopy(soft_q1)
+    soft_q2_targets = deepcopy(soft_q1)
 
     policy = PolicyNetwork(state_dim, action_dim, policy_hidden, learning_rates.get('actor'), gpu_device)
 
@@ -89,27 +90,21 @@ class SACAlgorithm:
         return q_loss
 
     def _calculate_target(self, state, action):
-        y_hat_q1 = self.soft_q1_targets(state.float(), action.float())
-        y_hat_q2 = self.soft_q2_targets(state.float(), action.float())
-        return torch.min(y_hat_q1, y_hat_q2)
+        with torch.no_grad():
+            y_hat_q1 = self.soft_q1_targets(state.float(), action.float())
+            y_hat_q2 = self.soft_q2_targets(state.float(), action.float())
+            min_ = torch.min(y_hat_q1, y_hat_q2)
+        return min_
 
-    def _update_policy(self, state, policy_function=1):
-        action_new, action_entropy_new = self.policy.sample(torch.Tensor(state))
+    def _update_policy(self, state):
+        action_new, _, log_pi = self.policy.sample(torch.Tensor(state))
         q1_forward = self.soft_q1(state.float(), action_new.float())
         q2_forward = self.soft_q2(state.float(), action_new.float())
         q_forward = torch.min(q1_forward, q2_forward)
 
         # Changed to an F.mse_loss from simple mean
         # policy_loss = F.mse_loss((self.alpha * action_entropy_new), q_forward)
-        if policy_function == 1:
-            policy_loss = torch.abs((q_forward - (self.alpha * action_entropy_new)).mean())
-        elif policy_function == 2:
-            policy_loss = F.mse_loss((self.alpha * action_entropy_new), q_forward)
-        elif policy_function == 3:
-            policy_loss = (q_forward - (self.alpha * action_entropy_new)).mean()
-        else:
-            logging.error("POLICY FUNCTION NOT DEFINED")
-            sys.exit(-1)
+        policy_loss = torch.abs((q_forward - (self.alpha * log_pi)).mean())
 
         self.policy.zero_grad()
         policy_loss.backward()
@@ -117,26 +112,29 @@ class SACAlgorithm:
 
         return policy_loss
 
-    def update(self):
-
+    def update(self, step):
         # Sample from Replay buffer
         state, action, reward, new_state, done, _ = self.buffer.sample(batch_size=self.sample_batch_size)
 
         # Computation of targets
         # Here we are using 2 different Q Networks and afterwards choose the lower reward as regulator.
-        action, action_entropy = self.policy.sample(torch.Tensor(new_state))
+        if step % 2 == 0:
+            action, _, log_pi = self.policy.sample(torch.Tensor(new_state))
+            entropy = -self.alpha * log_pi
 
-        y_hat_q = self._calculate_target(state, action)
+            y_hat_q = self._calculate_target(state, action)
 
-        # We calculate the estimated reward for the next state
-        # DISCOUNT FACTOR
-        y_hat = reward + self.gamma * (1 - done) * (y_hat_q.cpu().data.numpy() - action_entropy.cpu().data.numpy())
+            # We calculate the estimated reward for the next state
+            # DISCOUNT FACTOR
+            y_hat = reward + self.gamma * (1 - done) * (y_hat_q.cpu() + entropy.cpu())
 
-        # # UPDATES OF THE CRITIC NETWORKS
-        q_loss = self._update_critic(state, action, y_hat)
+            # # UPDATES OF THE CRITIC NETWORKS
+  
+            q_loss = self._update_critic(state, action, y_hat)
 
         # Update Policy Network (ACTOR)
-        policy_loss = self._update_policy(state, policy_function=self.param.get('policy_function'))
+        if step % 2 == 0:
+            policy_loss = self._update_policy(state)
 
         self.soft_q1_targets.update_params(self.soft_q1.state_dict(), self.tau)
         self.soft_q2_targets.update_params(self.soft_q2.state_dict(), self.tau)
@@ -145,5 +143,5 @@ class SACAlgorithm:
         return policy_loss.item(), q_loss.item()
 
     def sample_action(self, state: torch.Tensor):
-        action, log_pi = self.policy.sample(state)
-        return action.detach(), log_pi
+        action, _, log_pi = self.policy.sample(state)
+        return action.detach().cpu().data.numpy(), log_pi
