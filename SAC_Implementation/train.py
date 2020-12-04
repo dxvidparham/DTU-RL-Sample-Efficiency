@@ -11,6 +11,7 @@ import numpy as np
 import torch
 
 from SAC_Implementation.SACAlgorithm import SACAlgorithm
+from VideoRecorder import VideoRecorder
 from plotter import Plotter
 
 from hyperopt import fmin, tpe, space_eval, Trials, STATUS_OK
@@ -63,6 +64,7 @@ def show_replay():
         <video width="360" height="auto" alt="test" controls><source src="data:video/mp4;base64,{0}" type="video/mp4" /></video>'''
                 .format(encoded.decode('ascii')))
 
+
 def prepare_hyperparameter_tuning(hyperparameter_space, max_evals=2):
     try:
         trials = Trials()
@@ -88,7 +90,7 @@ def prepare_hyperparameter_tuning(hyperparameter_space, max_evals=2):
         raise
 
 
-def run_sac(hyperparameter_space: dict, video) -> Dict:
+def run_sac(hyperparameter_space: dict) -> Dict:
     """
     Method to to start the SAC algorithm on a certain problem
     :param video: video object
@@ -96,6 +98,11 @@ def run_sac(hyperparameter_space: dict, video) -> Dict:
     :return:
     """
     LogHelper.print_big_log('Initialize Hyperparameter')
+
+    # Initialize video object
+
+    DEFAULT_VIDEO_DIR = "videos"
+    video = VideoRecorder(DEFAULT_VIDEO_DIR if hyperparameter_space.get('save_video') else None)
 
     # Print the hyperparameters
     # Initialize the environment
@@ -116,7 +123,8 @@ def run_sac(hyperparameter_space: dict, video) -> Dict:
                            "gamma": hyperparameter_space.get('gamma'),
                            "sample_batch_size": hyperparameter_space.get('sample_batch_size'),
                            "replay_buffer_size": hyperparameter_space.get('replay_buffer_size'),
-                           "gpu_device": hyperparameter_space.get('gpu_device')
+                           "gpu_device": hyperparameter_space.get('gpu_device'),
+                           "policy_function": hyperparameter_space.get('policy_function')
                        })
 
     # Init the Plotter
@@ -153,7 +161,7 @@ def run_sac(hyperparameter_space: dict, video) -> Dict:
                 ep_reward += r
 
                 _polo, _qlo = [], []
-                if sac.buffer.length < sac.sample_batch_size:
+                if sac.buffer.length > sac.sample_batch_size:
                     for i in range(20):
                         # Update the network
                         _metric = sac.update()
@@ -161,9 +169,9 @@ def run_sac(hyperparameter_space: dict, video) -> Dict:
                         _polo.append(_metric[0])
                         _qlo.append(_metric[1])
 
-                policy_loss_incr = min(_polo)
-                q_loss_incr += min(_qlo)
-                length = step
+                    policy_loss_incr = min(_polo)
+                    q_loss_incr += min(_qlo)
+                    length = step
 
                 # Update current step
                 current_state = s1

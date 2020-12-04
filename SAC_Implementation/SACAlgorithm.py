@@ -51,7 +51,7 @@ class SACAlgorithm:
         :param param: dict which needs following parameter:
             [hidden_dim, lr_critic, lr_policy, alpha, tau, gamma, sample_batch_size]
         """
-
+        self.param = param
         self.action_dim = env.action_space.shape[0]
         self.state_dim = env.observation_space.shape[0]
         self.device = torch.device(f'cuda:{param.get("gpu_device")}' if torch.cuda.is_available() else 'cpu')
@@ -78,7 +78,7 @@ class SACAlgorithm:
         q2_forward = self.soft_q2(state.float(), action.float())
 
         # Q1 Network
-        q_loss = F.mse_loss(q1_forward.float(), y_hat.float().to(device=self.device)) +\
+        q_loss = F.mse_loss(q1_forward.float(), y_hat.float().to(device=self.device)) + \
                  F.mse_loss(q2_forward.float(), y_hat.float().to(device=self.device))
 
         self.soft_q1.optimizer.zero_grad()
@@ -93,7 +93,7 @@ class SACAlgorithm:
         y_hat_q2 = self.soft_q2_targets(state.float(), action.float())
         return torch.min(y_hat_q1, y_hat_q2)
 
-    def _update_policy(self, state):
+    def _update_policy(self, state, policy_function=1):
         action_new, action_entropy_new = self.policy.sample(torch.Tensor(state))
         q1_forward = self.soft_q1(state.float(), action_new.float())
         q2_forward = self.soft_q2(state.float(), action_new.float())
@@ -101,7 +101,15 @@ class SACAlgorithm:
 
         # Changed to an F.mse_loss from simple mean
         # policy_loss = F.mse_loss((self.alpha * action_entropy_new), q_forward)
-        policy_loss = torch.abs((q_forward-(self.alpha * action_entropy_new)).mean())
+        if policy_function == 1:
+            policy_loss = torch.abs((q_forward - (self.alpha * action_entropy_new)).mean())
+        elif policy_function == 2:
+            policy_loss = F.mse_loss((self.alpha * action_entropy_new), q_forward)
+        elif policy_function == 3:
+            policy_loss = (q_forward - (self.alpha * action_entropy_new)).mean()
+        else:
+            logging.error("POLICY FUNCTION NOT DEFINED")
+            sys.exit(-1)
 
         self.policy.zero_grad()
         policy_loss.backward()
@@ -128,7 +136,7 @@ class SACAlgorithm:
         q_loss = self._update_critic(state, action, y_hat)
 
         # Update Policy Network (ACTOR)
-        policy_loss = self._update_policy(state)
+        policy_loss = self._update_policy(state, policy_function=self.param.get('policy_function'))
 
         self.soft_q1_targets.update_params(self.soft_q1.state_dict(), self.tau)
         self.soft_q2_targets.update_params(self.soft_q2.state_dict(), self.tau)

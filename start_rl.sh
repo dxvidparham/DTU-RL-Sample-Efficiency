@@ -27,7 +27,8 @@ python3 main.py --env-domain=cartpole\
                 --env-task=balance\
                 --seed=1\
                 --save_video\
-                --recording_interval=1\
-                --episodes=100\
+                --recording_interval=5\
+                --episodes=20\
                 --log_level="DEBUG"\
-                --gpu_device=0
+                --gpu_device=0\
+                --max_eval=5

@@ -11,12 +11,9 @@ from hyperopt import hp
 
 from argument_helper import parse
 
-
 DEFAULT_LOG_DIR = "logs"
 DEFAULT_LOG_FILE = f"logging_{datetime.datetime.now().strftime('%Y_%m_%d-%H_%M_%S')}.log"
 
-
-DEFAULT_VIDEO_DIR = "videos"
 
 parameter = {
     # Logging
@@ -35,11 +32,11 @@ parameter = {
     # Parameter for RL
     "gamma": 0.98,
     "alpha": 0.01,
-    "tau": 0.01, # for target network soft update,
+    "tau": 0.01,  # for target network soft update,
 
     # Environment
-    "env_domain": "cartpole",
-    "env_task": "balance",
+    "env_domain": "walker",
+    "env_task": "walk",
     "seed": 1,
     "frame-skip": 4,
 
@@ -50,17 +47,18 @@ parameter = {
     "max_steps": 10000,
 
     # Hyperparameter-tuning
-    "max_evals": 1,
+    "max_evals": 3,
 
     # ID of the GPU to use
     "gpu_device": "1",
 }
 
 hyperparameter_space = {
-    #"gamma": hp.uniform('gamma', 0, 1),
-    # "alpha": hp.uniform('alpha', 0, 1),
-    #"tau": hp.uniform('tau', 0.8, 1),
-     "hidden_dim": hp.choice('hidden_dim', [16, 64, 129, 256, 512])
+    "gamma": hp.uniform('gamma', 0.9, 1),
+    "alpha": hp.uniform('alpha', 0, 0.05),
+    "tau": hp.uniform('tau', 0, 0.05),
+    "hidden_dim": hp.choice('hidden_dim', [128, 256, 512]),
+    "policy_function": hp.choice('policy_function', [1, 2, 3])
 }
 logging.info({**parameter, **hyperparameter_space})
 
@@ -84,7 +82,7 @@ file_handler = logging.FileHandler(parameter.get('log_file'),
                                    )
 file_handler.formatter = ColouredFormatter(format, date_format, '{')
 
-#format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+# format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
 logging.basicConfig(datefmt=date_format,
                     level=int(level),
                     handlers=[file_handler, h]
@@ -94,20 +92,15 @@ logger = logging.getLogger(__name__)
 mpl_logger = logging.getLogger('matplotlib')
 mpl_logger.setLevel(logging.WARNING)
 
-#Initialize video object
-video = VideoRecorder(DEFAULT_VIDEO_DIR if args.get('save_video') else None)
-
 
 # The import must be done down here to allow the logging configuration
 from SAC_Implementation import train
 
-
-
 params = []
-#SAC.prepare_hyperparameter_tuning({**args, **hyperparameter_space}, max_evals=args['max_evals'])
+train.prepare_hyperparameter_tuning({**args, **hyperparameter_space},
+                                    max_evals=args['max_evals'])
 
 # Running of the SAC
-train.run_sac(hyperparameter_space=args, video=video)
+# train.run_sac(hyperparameter_space={**parameter, **hyperparameter_space}, video=video)
 
 ##
-
