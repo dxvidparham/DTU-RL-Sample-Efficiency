@@ -57,6 +57,7 @@ class SoftQNetwork(nn.Module):
         for k in params.keys():
             old_params_ = copy.deepcopy(params[k])
 
+            # Params -> Targets in most of the cases
             params[k] = torch.multiply(params[k], (1 - tau)) + torch.multiply(new_params[k], tau)
 
             if (params[k] != params[k]).cpu().data.numpy().any():

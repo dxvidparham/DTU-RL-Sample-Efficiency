@@ -7,7 +7,6 @@ from SAC_Implementation.Networks import *
 from SAC_Implementation.ReplayBuffer import ReplayBuffer
 
 
-
 def initialize_nets_and_buffer(state_dim: int,
                                action_dim: int,
                                q_hidden: int,
@@ -52,12 +51,10 @@ class SACAlgorithm:
         :param param: dict which needs following parameter:
             [hidden_dim, lr_critic, lr_policy, alpha, tau, gamma, sample_batch_size]
         """
-
+        self.param = param
         self.action_dim = env.action_space.shape[0]
         self.state_dim = env.observation_space.shape[0]
         self.device = torch.device(f'cuda:{param.get("gpu_device")}' if torch.cuda.is_available() else 'cpu')
-
-        logging.debug(param)
 
         self.soft_q1, self.soft_q2, self.soft_q1_targets, self.soft_q2_targets, self.policy, self.buffer = initialize_nets_and_buffer(
             state_dim=self.state_dim,
@@ -76,9 +73,51 @@ class SACAlgorithm:
                                                                     param.get('tau'),
                                                                     param.get('gamma'))
 
+    def _update_critic(self, state, action, y_hat):
+        q1_forward = self.soft_q1(state.float(), action.float())
+        q2_forward = self.soft_q2(state.float(), action.float())
+
+        # Q1 Network
+        q_loss = F.mse_loss(q1_forward.float(), y_hat.float().to(device=self.device)) + \
+                 F.mse_loss(q2_forward.float(), y_hat.float().to(device=self.device))
+
+        self.soft_q1.optimizer.zero_grad()
+        self.soft_q2.optimizer.zero_grad()
+        q_loss.backward()
+        self.soft_q1.optimizer.step()
+        self.soft_q2.optimizer.step()
+        return q_loss
+
+    def _calculate_target(self, state, action):
+        y_hat_q1 = self.soft_q1_targets(state.float(), action.float())
+        y_hat_q2 = self.soft_q2_targets(state.float(), action.float())
+        return torch.min(y_hat_q1, y_hat_q2)
+
+    def _update_policy(self, state, policy_function=1):
+        action_new, action_entropy_new = self.policy.sample(torch.Tensor(state))
+        q1_forward = self.soft_q1(state.float(), action_new.float())
+        q2_forward = self.soft_q2(state.float(), action_new.float())
+        q_forward = torch.min(q1_forward, q2_forward)
+
+        # Changed to an F.mse_loss from simple mean
+        # policy_loss = F.mse_loss((self.alpha * action_entropy_new), q_forward)
+        if policy_function == 1:
+            policy_loss = torch.abs((q_forward - (self.alpha * action_entropy_new)).mean())
+        elif policy_function == 2:
+            policy_loss = F.mse_loss((self.alpha * action_entropy_new), q_forward)
+        elif policy_function == 3:
+            policy_loss = (q_forward - (self.alpha * action_entropy_new)).mean()
+        else:
+            logging.error("POLICY FUNCTION NOT DEFINED")
+            sys.exit(-1)
+
+        self.policy.zero_grad()
+        policy_loss.backward()
+        self.policy.optimizer.step()
+
+        return policy_loss
+
     def update(self):
-        if self.buffer.length < self.sample_batch_size:
-            return 0, 0
 
         # Sample from Replay buffer
         state, action, reward, new_state, done, _ = self.buffer.sample(batch_size=self.sample_batch_size)
@@ -87,44 +126,17 @@ class SACAlgorithm:
         # Here we are using 2 different Q Networks and afterwards choose the lower reward as regulator.
         action, action_entropy = self.policy.sample(torch.Tensor(new_state))
 
-        y_hat_q1 = self.soft_q1_targets(state.float(), action.float())
-        y_hat_q2 = self.soft_q2_targets(state.float(), action.float())
-        y_hat_q = torch.min(y_hat_q1, y_hat_q2)
-
-        # Sample the action for the new state using the policy network
+        y_hat_q = self._calculate_target(state, action)
 
         # We calculate the estimated reward for the next state
+        # DISCOUNT FACTOR
         y_hat = reward + self.gamma * (1 - done) * (y_hat_q.cpu().data.numpy() - action_entropy.cpu().data.numpy())
 
-        ## UPDATES OF THE CRITIC NETWORKS
-        q1_forward = self.soft_q1(state.float(), action.float())
-        q2_forward = self.soft_q2(state.float(), action.float())
-
-        # Q1 Network
-        q_loss = F.mse_loss(q1_forward.float(), y_hat.float().to(device=self.device)) \
-                 + F.mse_loss(q2_forward.float(), y_hat.float().to(device=self.device))
-        self.soft_q1.optimizer.zero_grad()
-        self.soft_q2.optimizer.zero_grad()
-
-        q_loss.backward()
-
-        self.soft_q1.optimizer.step()
-        self.soft_q2.optimizer.step()
+        # # UPDATES OF THE CRITIC NETWORKS
+        q_loss = self._update_critic(state, action, y_hat)
 
         # Update Policy Network (ACTOR)
-        action_new, action_entropy_new = self.policy.sample(torch.Tensor(state))
-        q1_forward = self.soft_q1(state.float(), action_new.float())
-        q2_forward = self.soft_q2(state.float(), action_new.float())
-        q_forward = torch.min(q1_forward, q2_forward)
-
-        # print(action_entropy_new)
-
-        # Changed to an F.mse_loss from simple mean
-        policy_loss = F.mse_loss((self.alpha * action_entropy_new), q_forward)
-
-        self.policy.zero_grad()
-        policy_loss.backward()  # torch.Tensor(sample_batch_size, 1))
-        self.policy.optimizer.step()
+        policy_loss = self._update_policy(state, policy_function=self.param.get('policy_function'))
 
         self.soft_q1_targets.update_params(self.soft_q1.state_dict(), self.tau)
         self.soft_q2_targets.update_params(self.soft_q2.state_dict(), self.tau)
@@ -135,4 +147,3 @@ class SACAlgorithm:
     def sample_action(self, state: torch.Tensor):
         action, log_pi = self.policy.sample(state)
         return action.detach(), log_pi
-

@@ -574,3 +574,5 @@ cython_debug/
 
 .idea
 /figures/
+/results/
+/videos/
