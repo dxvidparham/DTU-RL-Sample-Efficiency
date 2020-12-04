@@ -71,7 +71,7 @@ level = logging.getLevelName(args.get('log_level'))
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
 
-format = '{asctime} {levelname:8} {message}'
+format = '{asctime} {levelname:8} [{filename}:{lineno}]{message}'
 date_format = '%Y-%m-%d %H:%M:%S'
 
 h = ColouredHandler()

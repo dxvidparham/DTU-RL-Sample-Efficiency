@@ -1,8 +1,9 @@
 ## Imports
-
 import pickle
 import sys
+import time
 from datetime import datetime
+from timeit import timeit
 from typing import Dict
 
 import numpy as np
@@ -137,6 +138,7 @@ def run_sac(hyperparameter_space: dict) -> Dict:
 
     try:
         for _episode in range(hyperparameter_space.get('episodes')):
+            _start = time.time()
 
             logging.debug(f"Start EPISODE {_episode + 1}")
             ep_reward, policy_loss_incr, q_loss_incr, length = 0, 0, 0, 0
@@ -165,12 +167,14 @@ def run_sac(hyperparameter_space: dict) -> Dict:
 
                 _polo, _qlo = [], []
                 if sac.buffer.length > sac.sample_batch_size:
-                    for i in range(sac.sample_batch_size):
+
+                    update_steps = sac.sample_batch_size if (_episode * 250 + step) == sac.sample_batch_size == 0 else 1
+                    for i in range(update_steps):
                         # Update the network
                         _metric = sac.update(step)
-
                         _polo.append(_metric[0])
                         _qlo.append(_metric[1])
+                        logging.warning(_polo)
 
                     policy_loss_incr = min(_polo)
                     q_loss_incr += min(_qlo)
@@ -196,9 +200,10 @@ def run_sac(hyperparameter_space: dict) -> Dict:
                                  policy_loss=policy_loss_incr,
                                  q_loss=q_loss_incr)
 
+            _end = time.time()
             if _episode % 1 == 0:
                 logging.info(
-                    f"EPISODE {str(_episode + 1).ljust(4)} |reward {ep_reward:.4f} | P-Loss {policy_loss_incr:.4f}")
+                    f"EPISODE {str(_episode + 1).ljust(4)} |reward {ep_reward:.4f} | P-Loss {policy_loss_incr:.4f} | time {_end-_start:0.2f}s")
             else:
                 logging.debug(
                     f"EPISODE {str(_episode + 1).ljust(4)} | reward {ep_reward:.4f} | policy-loss {policy_loss_incr:.4f}")

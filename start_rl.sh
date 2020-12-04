@@ -29,6 +29,6 @@ python3 main.py --env-domain=cartpole\
                 --save_video\
                 --recording_interval=5\
                 --episodes=20\
-                --log_level="DEBUG"\
+                --log_level="INFO"\
                 --gpu_device=0\
-                --max_eval=5
+                --max_eval=1

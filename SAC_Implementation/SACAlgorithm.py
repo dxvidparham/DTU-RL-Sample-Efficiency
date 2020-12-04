@@ -110,7 +110,7 @@ class SACAlgorithm:
         policy_loss.backward()
         self.policy.optimizer.step()
 
-        return policy_loss
+        return policy_loss.item()
 
     def update(self, step):
         # Sample from Replay buffer
@@ -129,8 +129,7 @@ class SACAlgorithm:
             # DISCOUNT FACTOR
             y_hat = reward + self.gamma * (1 - done) * (y_hat_q.cpu() + entropy.cpu())
 
-            # # UPDATES OF THE CRITIC NETWORKS
-  
+            # # UPDATES OF THE CRITIC NETWORK
             q_loss = self._update_critic(state, action, y_hat)
 
         # Update Policy Network (ACTOR)
