@@ -15,9 +15,13 @@ mpl_logger.setLevel(logging.WARNING)
 import logging
 import pickle
 
-filename = "hp_result_02_12_2020-16_45_25.model"
+filename = "hp_result_04_12_2020-02_54_51.model"
 
 with open(f"results/{filename}", "rb") as f:
     eval = pickle.load(f)
 
 logging.info(eval)
+
+
+if __name__ == '__main__':
+    pass

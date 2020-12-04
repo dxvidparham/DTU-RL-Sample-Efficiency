@@ -31,20 +31,20 @@ parameter = {
 
     # Parameter for RL
     "gamma": 0.98,
-    "alpha": 0.01,
-    "tau": 0.01,  # for target network soft update,
+    "alpha": 0.2,
+    "tau": 0.02,  # for target network soft update,
 
     # Environment
-    "env_domain": "walker",
-    "env_task": "walk",
+    "env_domain": "cartpole",
+    "env_task": "balance",
     "seed": 1,
     "frame-skip": 4,
 
     # Parameter for running RL
     "replay_buffer_size": 10 ** 6,
-    "sample_batch_size": 1024,
+    "sample_batch_size": 1000,
     "episodes": 100,
-    "max_steps": 10000,
+    "max_steps": 250,
 
     # Hyperparameter-tuning
     "max_evals": 3,
@@ -55,9 +55,9 @@ parameter = {
 
 hyperparameter_space = {
     "gamma": hp.uniform('gamma', 0.9, 1),
-    "alpha": hp.uniform('alpha', 0, 0.05),
+    # "alpha": hp.uniform('alpha', 0.0005, 0.0015),
     "tau": hp.uniform('tau', 0, 0.05),
-    "hidden_dim": hp.choice('hidden_dim', [128, 256, 512]),
+    "hidden_dim": hp.choice('hidden_dim', [256]),
     "policy_function": hp.choice('policy_function', [1, 2, 3])
 }
 logging.info({**parameter, **hyperparameter_space})
@@ -91,7 +91,6 @@ logging.basicConfig(datefmt=date_format,
 logger = logging.getLogger(__name__)
 mpl_logger = logging.getLogger('matplotlib')
 mpl_logger.setLevel(logging.WARNING)
-
 
 # The import must be done down here to allow the logging configuration
 from SAC_Implementation import train

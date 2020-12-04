@@ -54,20 +54,10 @@ class SoftQNetwork(nn.Module):
 
     def update_params(self, new_params, tau):
         params = self.state_dict()
-        for k in params.keys():
-            old_params_ = copy.deepcopy(params[k])
+        with torch.no_grad():
+            for k in params.keys():
+                params[k] = torch.multiply(params[k], (1 - tau)) + torch.multiply(new_params[k], tau)
 
-            # Params -> Targets in most of the cases
-            params[k] = torch.multiply(params[k], (1 - tau)) + torch.multiply(new_params[k], tau)
-
-            if (params[k] != params[k]).cpu().data.numpy().any():
-                logging.error("WE SAW NONE VALUES:")
-                logging.error(f"new_params: {new_params[k]}")
-                logging.error(f"old_params: {old_params_}")
-                logging.error(f"tau: {tau}")
-                logging.error(".........................")
-                logging.error(f"params: {params[k]}")
-                sys.exit(-1)
         self.load_state_dict(params)
 
 
@@ -111,10 +101,12 @@ class PolicyNetwork(nn.Module):
         mean = self.mean_linear(x)
 
         # Squash it in -1 1
-        mean = torch.tanh(mean)
+        # mean = torch.tanh(mean)
 
-        log_std = self.log_std_linear(x)
-        log_std = torch.clamp(log_std, self.log_std_min, self.log_std_max)
+        # Squash log std
+        log_std = torch.tanh(self.log_std_linear(x))
+        log_std = self.log_std_min + 0.5*(self.log_std_max - self.log_std_min) * (log_std+1)
+        # log_std = torch.clamp(log_std, self.log_std_min, self.log_std_max)
 
         return mean, log_std
 
@@ -122,14 +114,13 @@ class PolicyNetwork(nn.Module):
         mean, log_std = self.forward(state.to(device=self.device))
         std = log_std.exp()
 
-        normal = Normal(mean, std)
-        z = normal.rsample()
-        action = torch.tanh(z).to(self.device)
+        noise = torch.randn_like(mean)
+        pi = mean + noise*std
 
-        # log_pi = normal.log_prob(z) - torch.log(1 - action.pow(2) + epsilon)
-        # log_pi = log_pi.sum(1, keepdim=True)
+        residual = (-0.5 * pi.pow(2)-log_std).sum(-1, keepdim=True)
+        log_pi = residual - 0.5 * np.log(2*np.pi)*pi.size(-1)
 
-        residual = (-0.5 * z.pow(2)-log_std).sum(-1, keepdim=True)
-        log_pi = residual - 0.5*np.log(2*np.pi)*z.size(-1)
-
-        return action.cpu(), log_pi
+        mean = torch.tanh(mean)
+        log_pi -= torch.log(F.relu(1 - pi.pow(2)) + 1e-6).sum(-1, keepdim=True)
+        pi = torch.tanh(pi)
+        return mean, pi, log_pi
