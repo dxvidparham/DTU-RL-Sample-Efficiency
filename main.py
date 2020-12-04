@@ -31,8 +31,8 @@ parameter = {
 
     # Parameter for RL
     "gamma": 0.98,
-    "alpha": 0.2,
-    "tau": 0.02,  # for target network soft update,
+    "alpha": 0.5,
+    "tau": 0.05,  # for target network soft update,
 
     # Environment
     "env_domain": "cartpole",

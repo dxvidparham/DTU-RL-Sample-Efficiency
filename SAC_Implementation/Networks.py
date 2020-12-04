@@ -107,7 +107,7 @@ class PolicyNetwork(nn.Module):
         log_std = torch.tanh(self.log_std_linear(x))
         log_std = self.log_std_min + 0.5*(self.log_std_max - self.log_std_min) * (log_std+1)
         # log_std = torch.clamp(log_std, self.log_std_min, self.log_std_max)
-
+        logging.warning(log_std)
         return mean, log_std
 
     def sample(self, state, epsilon=1e-6):
@@ -115,10 +115,10 @@ class PolicyNetwork(nn.Module):
         std = log_std.exp()
 
         noise = torch.randn_like(mean)
-        pi = mean + noise*std
+        pi = mean + noise * std
 
-        residual = (-0.5 * pi.pow(2)-log_std).sum(-1, keepdim=True)
-        log_pi = residual - 0.5 * np.log(2*np.pi)*pi.size(-1)
+        residual = (-0.5 * noise.pow(2) - log_std).sum(-1, keepdim=True)
+        log_pi = residual - 0.5 * np.log(2 * np.pi) * noise.size(-1)
 
         mean = torch.tanh(mean)
         log_pi -= torch.log(F.relu(1 - pi.pow(2)) + 1e-6).sum(-1, keepdim=True)

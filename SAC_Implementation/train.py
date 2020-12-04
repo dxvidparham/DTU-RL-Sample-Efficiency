@@ -141,7 +141,7 @@ def run_sac(hyperparameter_space: dict) -> Dict:
             _start = time.time()
 
             logging.debug(f"Start EPISODE {_episode + 1}")
-            ep_reward, policy_loss_incr, q_loss_incr, length = 0, 0, 0, 0
+            ep_reward, policy_loss_incr, q_loss_incr, length = 0, [],[], 0
 
             # Observe state and action
             current_state = env.reset()
@@ -165,19 +165,17 @@ def run_sac(hyperparameter_space: dict) -> Dict:
                 sac.buffer.add(obs=current_state, action=action_mean, reward=r, next_obs=s1, done=done)
                 ep_reward += r
 
-                _polo, _qlo = [], []
                 if sac.buffer.length > sac.sample_batch_size:
-
+                    _polo, _qlo = [], []
                     update_steps = sac.sample_batch_size if (_episode * 250 + step) == sac.sample_batch_size == 0 else 1
                     for i in range(update_steps):
                         # Update the network
                         _metric = sac.update(step)
                         _polo.append(_metric[0])
                         _qlo.append(_metric[1])
-                        logging.warning(_polo)
 
-                    policy_loss_incr = min(_polo)
-                    q_loss_incr += min(_qlo)
+                    policy_loss_incr.append(sum(_polo)/len(_polo))
+                    q_loss_incr.append(sum(_qlo)/len(_qlo))
                     length = step
 
                 # Update current step
@@ -201,12 +199,15 @@ def run_sac(hyperparameter_space: dict) -> Dict:
                                  q_loss=q_loss_incr)
 
             _end = time.time()
+
+            avg_ploss = sum(policy_loss_incr) / len(policy_loss_incr) if len(policy_loss_incr) != 0 else -1
+            avg_qloss = sum(q_loss_incr) / len(q_loss_incr) if len(q_loss_incr) != 0 else -1
             if _episode % 1 == 0:
                 logging.info(
-                    f"EPISODE {str(_episode + 1).ljust(4)} |reward {ep_reward:.4f} | P-Loss {policy_loss_incr:.4f} | time {_end-_start:0.2f}s")
+                    f"EPISODE {str(_episode + 1).ljust(4)} |reward {ep_reward:.4f} | P-Loss {avg_ploss:.4f} | Q-Loss {avg_qloss:.4f} | time {_end-_start:0.2f}s")
             else:
                 logging.debug(
-                    f"EPISODE {str(_episode + 1).ljust(4)} | reward {ep_reward:.4f} | policy-loss {policy_loss_incr:.4f}")
+                    f"EPISODE {str(_episode + 1).ljust(4)} | reward {ep_reward:.4f} | policy-loss {avg_ploss:.4f}")
 
     except KeyboardInterrupt as e:
         logging.error("KEYBOARD INTERRUPT")

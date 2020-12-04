@@ -104,7 +104,7 @@ class SACAlgorithm:
 
         # Changed to an F.mse_loss from simple mean
         # policy_loss = F.mse_loss((self.alpha * action_entropy_new), q_forward)
-        policy_loss = torch.abs((q_forward - (self.alpha * log_pi)).mean())
+        policy_loss = (q_forward-(self.alpha * log_pi)).mean()
 
         self.policy.zero_grad()
         policy_loss.backward()
@@ -121,8 +121,8 @@ class SACAlgorithm:
         # Here we are using 2 different Q Networks and afterwards choose the lower reward as regulator.
         if step % 2 == 0:
             action, _, log_pi = self.policy.sample(torch.Tensor(new_state))
-            entropy = -self.alpha * log_pi
-
+            logging.warning(log_pi)
+            entropy = self.alpha * log_pi
             y_hat_q = self._calculate_target(state, action)
 
             # We calculate the estimated reward for the next state
