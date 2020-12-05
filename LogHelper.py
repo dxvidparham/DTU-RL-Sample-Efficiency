@@ -5,7 +5,7 @@ This is a class for some helper methods to make logging more nice.
 import logging
 import sys
 
-colors = {
+COLORS = {
     "RESET": '\x1B[0m',
     "RED": '\x1B[31m',
     "YELLOW": "\x1B[33m",
@@ -21,8 +21,52 @@ colors = {
 }
 
 
+def log_step(_episode, step, reward, action):
+    logging.debug(
+        f"--EPISODE {(str(_episode + 1).ljust(2))}.{str(step).ljust(4)} | {colored_log_text(f'rew: {reward:.4f}', 'DARKGREEN')} | action: {action} ")
+
+
+def log_episode(_episode, step, reward, p_loss, q_loss, time, level="DEBUG"):
+    # p_loss = sum(p_loss) / len(p_loss) if len(p_loss) != 0 else -1
+    # q_loss = sum(q_loss) / len(q_loss) if len(q_loss) != 0 else -1
+
+    level = logging.getLevelName(level)
+    logging.log(level,
+                f"EPISODE {str(_episode + 1).ljust(4)} | Reward {reward:.4f} | P-Loss {p_loss:.4f} | Q-Loss {q_loss:.4f} | time {time:0.2f}s"
+                )
+
+
+def setup_logging(args):
+    # Set the logging format
+    format = '{asctime} [{filename}:{lineno}] {levelname:8} {message}'
+    date_format = '%Y-%m-%d %H:%M:%S'
+
+    # Setup coloring
+    h = ColouredHandler()
+    h.formatter = ColouredFormatter(format, date_format, '{')
+
+    file_handler = logging.FileHandler(args.get('log_file'),
+                                       mode='w+')
+    file_handler.formatter = ColouredFormatter(format, date_format, '{')
+
+    # Setup the logging environment
+    level = logging.getLevelName(args.get('log_level'))
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+
+    # format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+    logging.basicConfig(datefmt=date_format,
+                        level=int(level),
+                        handlers=[file_handler, h]
+                        )
+
+    logger = logging.getLogger(__name__)
+    mpl_logger = logging.getLogger('matplotlib')
+    mpl_logger.setLevel(logging.WARNING)
+
+
 def colored_log_text(txt, color):
-    return colors.get(color) + txt + colors.get('RESET')
+    return COLORS.get(color) + txt + COLORS.get('RESET')
 
 
 def print_dict(dictionary: dict, header: str):
@@ -63,6 +107,7 @@ def print_big_log(text: str, log_level: str = "INFO") -> None:
     logging.log(_level, colored_log_text("########################################", "DARKBLUE"))
 
 
+# Class to make colored output.
 class ColouredFormatter(logging.Formatter):
     def format(self, record, colour=False):
         message = super().format(record)
@@ -72,19 +117,19 @@ class ColouredFormatter(logging.Formatter):
 
         level_no = record.levelno
         if level_no >= logging.CRITICAL:
-            colour = colors.get("RED")
+            colour = COLORS.get("RED")
         elif level_no >= logging.ERROR:
-            colour = colors.get("RED")
+            colour = COLORS.get("RED")
         elif level_no >= logging.WARNING:
-            colour = colors.get("YELLOW")
+            colour = COLORS.get("YELLOW")
         elif level_no >= logging.INFO:
-            colour = colors.get("BRIGHTGREY")
+            colour = COLORS.get("BRIGHTGREY")
         elif level_no >= logging.DEBUG:
-            colour = colors.get("DARKGREY")
+            colour = COLORS.get("DARKGREY")
         else:
-            colour = colors.get("RESET")
+            colour = COLORS.get("RESET")
 
-        message = colour + message + colors.get("RESET")
+        message = colour + message + COLORS.get("RESET")
 
         return message
 

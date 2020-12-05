@@ -53,12 +53,16 @@ class SoftQNetwork(nn.Module):
         return action_value_output
 
     def update_params(self, new_params, tau):
-        params = self.state_dict()
-        with torch.no_grad():
-            for k in params.keys():
-                params[k] = torch.multiply(params[k], (1 - tau)) + torch.multiply(new_params[k], tau)
+        params = self.parameters()
 
-        self.load_state_dict(params)
+        for param, target_param in zip(new_params, params):
+            target_param.data.copy_(
+                tau * param.data + (1 - tau) * target_param.data
+            )
+
+        # for k in params.keys():
+        #     params[k] = params[k] * (1 - tau) + new_params[k] * tau
+        # self.load_state_dict(params)
 
 
 # POLICY
@@ -71,7 +75,7 @@ class PolicyNetwork(nn.Module):
             lr_policy,
             gpu_device,
             init_w=3e-3,
-            log_std_min=-20,
+            log_std_min=-10,
             log_std_max=2,
     ):
         super(PolicyNetwork, self).__init__()
@@ -107,7 +111,6 @@ class PolicyNetwork(nn.Module):
         log_std = torch.tanh(self.log_std_linear(x))
         log_std = self.log_std_min + 0.5*(self.log_std_max - self.log_std_min) * (log_std+1)
         # log_std = torch.clamp(log_std, self.log_std_min, self.log_std_max)
-        logging.warning(log_std)
         return mean, log_std
 
     def sample(self, state, epsilon=1e-6):

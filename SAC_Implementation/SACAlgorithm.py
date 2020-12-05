@@ -1,4 +1,5 @@
 import logging
+import math
 from copy import deepcopy
 
 import torch
@@ -104,7 +105,8 @@ class SACAlgorithm:
 
         # Changed to an F.mse_loss from simple mean
         # policy_loss = F.mse_loss((self.alpha * action_entropy_new), q_forward)
-        policy_loss = (q_forward-(self.alpha * log_pi)).mean()
+        entropy = -self.alpha * log_pi
+        policy_loss = -(q_forward+entropy).mean()
 
         self.policy.zero_grad()
         policy_loss.backward()
@@ -113,31 +115,35 @@ class SACAlgorithm:
         return policy_loss.item()
 
     def update(self, step):
+
         # Sample from Replay buffer
+        # logging.warning("STEEEEEP 11")
         state, action, reward, new_state, done, _ = self.buffer.sample(batch_size=self.sample_batch_size)
         policy_loss, q_loss = 0, 0
         
         # Computation of targets
         # Here we are using 2 different Q Networks and afterwards choose the lower reward as regulator.
         if step % 2 == 0:
-            action, _, log_pi = self.policy.sample(torch.Tensor(new_state))
-            logging.warning(log_pi)
-            entropy = self.alpha * log_pi
-            y_hat_q = self._calculate_target(state, action)
+            # logging.warning("STEEEEEP 12")
+
+            action_sample, _, log_pi = self.policy.sample(torch.Tensor(new_state))
+            entropy = -math.exp(self.alpha) * log_pi
+            y_hat_q = self._calculate_target(new_state, action_sample)
 
             # We calculate the estimated reward for the next state
             # DISCOUNT FACTOR
             y_hat = reward + self.gamma * (1 - done) * (y_hat_q.cpu() + entropy.cpu())
 
             # # UPDATES OF THE CRITIC NETWORK
+            # logging.warning("STEEEEEP 13")
             q_loss = self._update_critic(state, action, y_hat)
 
         # Update Policy Network (ACTOR)
         if step % 2 == 0:
             policy_loss = self._update_policy(state)
 
-        self.soft_q1_targets.update_params(self.soft_q1.state_dict(), self.tau)
-        self.soft_q2_targets.update_params(self.soft_q2.state_dict(), self.tau)
+        self.soft_q1_targets.update_params(self.soft_q1.parameters(), self.tau)
+        self.soft_q2_targets.update_params(self.soft_q2.parameters(), self.tau)
 
         # for graph
         return policy_loss, q_loss
