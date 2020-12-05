@@ -26,7 +26,7 @@ parameter = {
 
     # Parameter for RL
     "gamma": 0.98,
-    "alpha": 0.2,# Cartpole Balance: 1e-2,
+    "alpha": 0.5,# Cartpole Balance: 1e-2,
     "tau": 0.01,  # for target network soft update,
 
     # Environment
