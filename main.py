@@ -54,7 +54,8 @@ hyperparameter_space = {
     # "alpha": hp.uniform('alpha', 0.0005, 0.0015),
     #"tau": hp.uniform('tau', 0, 0.05),
     "hidden_dim": hp.choice('hidden_dim', [256]),
-    "policy_function": hp.choice('policy_function', [1, 2, 3])
+    "policy_function": hp.choice('policy_function', [1, 2, 3]),
+    "num_updates": 1
 }
 
 

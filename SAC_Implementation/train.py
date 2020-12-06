@@ -132,8 +132,8 @@ def run_sac(hyperparameter_space: dict) -> Dict:
                 if sac.buffer.length > sac.sample_batch_size:
                     _polo, _qlo = [], []
                     # TODO REWRITE
-                    update_steps = hyperparameter_space.get('max_steps') if (_episode * 250 + step) == hyperparameter_space.get(
-                        'max_steps') else 10
+                    update_steps = hyperparameter_space.get('max_steps') if total_step == hyperparameter_space.get(
+                        'max_steps') else hyperparameter_space.get('num_updates')
                     for i in range(update_steps):
                         # Update the network
                         _metric = sac.update(step)

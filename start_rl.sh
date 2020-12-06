@@ -24,11 +24,11 @@ module load ffmpeg/4.2.2
 #export IS_BSUB_EGL=1
 
 python3 main.py --env-domain=cartpole\
-                --env-task=swingup\
+                --env-task=balance\
                 --seed=1\
                 --save_video\
                 --recording_interval=15\
-                --episodes=1000\
+                --episodes=100\
                 --log_level="INFO"\
                 --gpu_device=0\
                 --max_eval=1
