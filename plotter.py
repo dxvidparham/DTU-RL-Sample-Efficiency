@@ -41,7 +41,7 @@ class Plotter:
                                   level=log)
 
     def get_lists(self):
-        return self.rewards, self.lengths, self.policy_losses, self.q_losses, self.total_steps
+        return self.rewards, self.lengths, self.policy_losses, self.q_losses, self.total_steps, self.time
 
     def plot(self):
         f, ax = plt.subplots(2, 2, sharex=True, sharey=True)

@@ -39,7 +39,7 @@ def prepare_hyperparameter_tuning(hyperparameter_space, max_evals=2):
         LogHelper.print_dict({**hyperparameter_space, **best}, "Final Parameters")
 
         filename = datetime.now().strftime("%d_%m_%Y-%H_%M_%S")
-        file_path = f"results/hp_result_{filename}.model"
+        file_path = f"results/{hyperparameter_space.get('hyperparmeter_round')}_{filename}.model"
 
         with open(file_path, 'wb') as f:
             pickle.dump(trials.results, f)
@@ -129,7 +129,8 @@ def run_sac(hyperparameter_space: dict) -> Dict:
                 current_state = s1
 
                 # logging.warning("STEEEEEP 9")
-                if sac.buffer.length > sac.sample_batch_size:
+                # if sac.buffer.length > sac.sample_batch_size:
+                if sac.buffer.length > 1000:
                     _polo, _qlo = [], []
                     # TODO REWRITE
                     update_steps = hyperparameter_space.get('max_steps') if total_step == hyperparameter_space.get(
@@ -170,7 +171,7 @@ def run_sac(hyperparameter_space: dict) -> Dict:
         plotter.plot()
         pass
 
-    rew, _, q_losses, policy_losses, total_step = plotter.get_lists()
+    rew, _, q_losses, policy_losses, total_step, timing = plotter.get_lists()
 
     # Give back the error which should be optimized by the hyperparameter tuner
     max_reward = max(np.array(rew))
@@ -180,8 +181,10 @@ def run_sac(hyperparameter_space: dict) -> Dict:
             'max_reward': max_reward,
             'q_losses': q_losses,
             'policy_losses': policy_losses,
-            'rewards': rew}
-
+            'rewards': rew,
+            'total_steps': total_step,
+            'time': timing,
+            'params': hyperparameter_space}
 
 def initialize_environment(domain_name, task_name, seed, frame_skip):
     """

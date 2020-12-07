@@ -26,7 +26,7 @@ parameter = {
 
     # Parameter for RL
     "gamma": 0.98,
-    "alpha": 0.5,# Cartpole Balance: 1e-2,
+    "alpha": 1e-2,
     "tau": 0.01,  # for target network soft update,
 
     # Environment
@@ -38,11 +38,11 @@ parameter = {
     # Parameter for running RL
     "replay_buffer_size": 10 ** 6,
     "sample_batch_size": 128,
-    "episodes": 100,
+    "episodes": 500,
     "max_steps": 250,
 
     # Hyperparameter-tuning
-    "max_evals": 1,
+    "max_evals": 10,
 
     # ID of the GPU to use
     "gpu_device": "1",
@@ -50,11 +50,11 @@ parameter = {
 
 # HYPERPARAMETER training.
 hyperparameter_space = {
-    #"gamma": hp.uniform('gamma', 0.9, 1),
-    # "alpha": hp.uniform('alpha', 0.0005, 0.0015),
+    "hyperparmeter_round": "gamma",
+    "gamma": hp.quniform('gamma', 0.7, 1, 0.01),
+    #"alpha": hp.quniform('alpha', 0.0005, 0.1, 0.001),
     #"tau": hp.uniform('tau', 0, 0.05),
     "hidden_dim": hp.choice('hidden_dim', [256]),
-    "policy_function": hp.choice('policy_function', [1, 2, 3]),
     "num_updates": 1
 }
 
