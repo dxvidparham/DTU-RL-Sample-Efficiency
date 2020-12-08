@@ -115,7 +115,8 @@ class SACAlgorithm:
     def update(self, step):
         # Sample from Replay buffer
         state, action, reward, new_state, done, _ = self.buffer.sample(batch_size=self.sample_batch_size)
-
+        policy_loss, q_loss = 0, 0
+        
         # Computation of targets
         # Here we are using 2 different Q Networks and afterwards choose the lower reward as regulator.
         if step % 2 == 0:
@@ -140,7 +141,7 @@ class SACAlgorithm:
         self.soft_q2_targets.update_params(self.soft_q2.state_dict(), self.tau)
 
         # for graph
-        return policy_loss.item(), q_loss.item()
+        return policy_loss, q_loss
 
     def sample_action(self, state: torch.Tensor):
         action, _, log_pi = self.policy.sample(state)
