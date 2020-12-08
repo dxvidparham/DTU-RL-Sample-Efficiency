@@ -4,6 +4,8 @@ They include the model, as well as the performance of each of them.
 
 """
 import logging
+from datetime import datetime
+
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                     datefmt='%Y-%m-%d:%H:%M:%S',
                     level='INFO',
@@ -12,16 +14,50 @@ logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:
 mpl_logger = logging.getLogger('matplotlib')
 mpl_logger.setLevel(logging.WARNING)
 
-import logging
 import pickle
 
-filename = "hp_result_04_12_2020-02_54_51.model"
+from matplotlib import pyplot as plt
 
-with open(f"results/{filename}", "rb") as f:
-    eval = pickle.load(f)
+##
 
-logging.info(eval)
+filename = "alphaupdate_07_12_2020-15_01_57"
+ending = "model"
 
+parameter = "alpha"
+
+with open(f"results/{filename}.{ending}", "rb") as f:
+    evaluation = pickle.load(f)
+
+#  dict_keys(['loss', 'status', 'model', 'max_reward', 'q_losses', 'policy_losses', 'rewards'])
+
+values = list(map(lambda x: x['params'][parameter], evaluation))
+logging.info(values)
+
+figsizes=(15, 7)
+
+logging.error(evaluation[0].keys())
+
+def plot(what: str, label:str=""):
+    plt.figure(figsize=figsizes)
+    for _round in evaluation:
+        plt.plot(_round['total_steps'], _round[what], label=f"{parameter}={_round['params'][parameter]:.4f}")
+
+    label = what if what else label
+
+    plt.title(f"{evaluation[0]['params']['env_domain'].capitalize()}:{evaluation[0]['params']['env_task'].capitalize()} - Optimization of {parameter}")
+    plt.xlabel("Update steps")
+    plt.ylabel(f"Average {label}")
+    plt.legend()
+    plt.tight_layout()
+    date_now = datetime.now().strftime("%Y_%M_%d_%H_%M_%S")
+    filename = f"{parameter}_{what}_{date_now}"
+    plt.savefig(f'hp_figures/{filename}.pdf')
+
+
+plot('rewards')
+plot('time')
+plot('q_losses')
+plot('policy_losses')
 
 if __name__ == '__main__':
     pass
