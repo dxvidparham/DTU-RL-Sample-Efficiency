@@ -96,10 +96,10 @@ mpl_logger.setLevel(logging.WARNING)
 from SAC_Implementation import train
 
 params = []
-train.prepare_hyperparameter_tuning({**args, **hyperparameter_space},
-                                    max_evals=args['max_evals'])
+# train.prepare_hyperparameter_tuning({**args, **hyperparameter_space},
+                                    #max_evals=args['max_evals'])
 
 # Running of the SAC
-# train.run_sac(hyperparameter_space={**parameter, **hyperparameter_space}, video=video)
+train.run_sac(hyperparameter_space={**parameter, **hyperparameter_space})
 
 ##

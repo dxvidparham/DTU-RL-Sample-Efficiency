@@ -116,7 +116,7 @@ class SACAlgorithm:
         # Sample from Replay buffer
         state, action, reward, new_state, done, _ = self.buffer.sample(batch_size=self.sample_batch_size)
         policy_loss, q_loss = 0, 0
-        
+
         # Computation of targets
         # Here we are using 2 different Q Networks and afterwards choose the lower reward as regulator.
         if step % 2 == 0:
@@ -130,7 +130,7 @@ class SACAlgorithm:
             y_hat = reward + self.gamma * (1 - done) * (y_hat_q.cpu() + entropy.cpu())
 
             # # UPDATES OF THE CRITIC NETWORKS
-  
+
             q_loss = self._update_critic(state, action, y_hat)
 
         # Update Policy Network (ACTOR)
