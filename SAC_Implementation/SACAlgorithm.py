@@ -70,10 +70,23 @@ class SACAlgorithm:
             replay_buffer_size=param.get('replay_buffer_size'),
             gpu_device=param.get('gpu_device')
         )
-        self.sample_batch_size, self.alpha, self.tau, self.gamma = (param.get('sample_batch_size'),
-                                                                    param.get('alpha'),
+        self.alpha_decay_activated = param.get('alpha_decay_activated')
+        if self.alpha_decay_activated:
+            self.log_alpha = torch.tensor(np.log(param.get('init_alpha'))).to(self.device)
+            self.log_alpha.requires_grad = True
+            # set target entropy to -|A|
+            self.target_entropy = -np.prod(self.action_dim)
+            self.log_alpha_optimizer = torch.optim.Adam(
+                [self.log_alpha], lr=param.get('alpha_lr'), betas=(param.get('alpha_beta'), 0.999)
+            )
+        else:
+            self.alpha = param.get('alpha')
+
+        self.sample_batch_size,  self.tau, self.gamma = (param.get('sample_batch_size'),
                                                                     param.get('tau'),
                                                                     param.get('gamma'))
+
+
 
     def _update_critic(self, state, action, y_hat):
         q1_forward = self.soft_q1(state.float(), action.float())
@@ -97,7 +110,7 @@ class SACAlgorithm:
             min_ = torch.min(y_hat_q1, y_hat_q2)
         return min_
 
-    def _update_policy(self, state):
+    def _update_policy_alpha(self, state):
         action_new, _, log_pi = self.policy.sample(torch.Tensor(state))
         q1_forward = self.soft_q1(state.float(), action_new.float())
         q2_forward = self.soft_q2(state.float(), action_new.float())
@@ -105,29 +118,46 @@ class SACAlgorithm:
 
         # Changed to an F.mse_loss from simple mean
         # policy_loss = F.mse_loss((self.alpha * action_entropy_new), q_forward)
-        entropy = -self.alpha * log_pi
-        policy_loss = -(q_forward+entropy).mean()
+        if self.alpha_decay_activated:
+            entropy = -self.log_alpha.exp().detach() * log_pi
+        else:
+            entropy = -self.alpha * log_pi
+
+        policy_loss = -(q_forward + entropy).mean()
 
         self.policy.zero_grad()
         policy_loss.backward()
         self.policy.optimizer.step()
 
-        return policy_loss.item()
+        if self.alpha_decay_activated:
+            self.log_alpha_optimizer.zero_grad()
+            alpha_loss = (self.log_alpha *
+                          (-log_pi - self.target_entropy).detach()).mean()
+            alpha_loss.backward()
+            self.log_alpha_optimizer.step()
+        else:
+            alpha_loss = 0
+
+        return policy_loss.item(), alpha_loss
 
     def update(self, step):
 
         # Sample from Replay buffer
         # logging.warning("STEEEEEP 11")
         state, action, reward, new_state, done, _ = self.buffer.sample(batch_size=self.sample_batch_size)
-        policy_loss, q_loss = 0, 0
-        
+        policy_loss, q_loss, alpha_loss = 0, 0, 0
+
         # Computation of targets
         # Here we are using 2 different Q Networks and afterwards choose the lower reward as regulator.
         if step % 2 == 0:
             # logging.warning("STEEEEEP 12")
 
             action_sample, _, log_pi = self.policy.sample(torch.Tensor(new_state))
-            entropy = -math.exp(self.alpha) * log_pi
+
+            if self.alpha_decay_activated:
+                entropy = -self.log_alpha.exp() * log_pi
+            else:
+                entropy = -math.exp(self.alpha) * log_pi
             y_hat_q = self._calculate_target(new_state, action_sample)
 
             # We calculate the estimated reward for the next state
@@ -138,15 +168,15 @@ class SACAlgorithm:
             # logging.warning("STEEEEEP 13")
             q_loss = self._update_critic(state, action, y_hat)
 
-        # Update Policy Network (ACTOR)
+        # Update Policy Network (ACTOR) and alpha
         if step % 2 == 0:
-            policy_loss = self._update_policy(state)
+            policy_loss, alpha_loss = self._update_policy_alpha(state)
 
         self.soft_q1_targets.update_params(self.soft_q1.parameters(), self.tau)
         self.soft_q2_targets.update_params(self.soft_q2.parameters(), self.tau)
 
         # for graph
-        return policy_loss, q_loss
+        return policy_loss, q_loss, alpha_loss
 
     def sample_action(self, state: torch.Tensor):
         action, _, log_pi = self.policy.sample(state)

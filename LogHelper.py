@@ -26,13 +26,13 @@ def log_step(_episode, step, reward, action):
         f"--EPISODE {(str(_episode + 1).ljust(2))}.{str(step).ljust(4)} | {colored_log_text(f'rew: {reward:.4f}', 'DARKGREEN')} | action: {action} ")
 
 
-def log_episode(_episode, step, reward, p_loss, q_loss, time, level="DEBUG"):
+def log_episode(_episode, step, reward, p_loss, q_loss, a_loss,time, level="DEBUG"):
     # p_loss = sum(p_loss) / len(p_loss) if len(p_loss) != 0 else -1
     # q_loss = sum(q_loss) / len(q_loss) if len(q_loss) != 0 else -1
 
     level = logging.getLevelName(level)
     logging.log(level,
-                f"EPISODE {str(_episode + 1).ljust(4)} | Reward {reward:.4f} | P-Loss {p_loss:.4f} | Q-Loss {q_loss:.4f} | time {time:0.2f}s"
+                f"EPISODE {str(_episode + 1).ljust(4)} | Reward {reward:.4f} | P-Loss {p_loss:.4f} | Q-Loss {q_loss:.4f} | a-Loss {a_loss:.4f} | time {time:0.2f}s"
                 )
 
 
