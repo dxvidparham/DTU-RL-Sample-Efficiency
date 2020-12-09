@@ -59,7 +59,6 @@ class Plotter:
         ax[1][1].plot(self.total_steps, self.time)
 
 
-
         plt.tight_layout()
         now = datetime.now().strftime("%d_%m_%Y-%H_%M_%S")
         filename = f"plot_{now}.png"

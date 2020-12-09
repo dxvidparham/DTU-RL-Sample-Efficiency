@@ -5,6 +5,7 @@ They include the model, as well as the performance of each of them.
 """
 import logging
 from datetime import datetime
+import numpy as np
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                     datefmt='%Y-%m-%d:%H:%M:%S',
@@ -20,7 +21,9 @@ from matplotlib import pyplot as plt
 
 ##
 
+
 filename = "alpha_init_08_12_2020-17_38_28"
+
 ending = "model"
 
 parameter = "init_alpha"
@@ -37,10 +40,18 @@ figsizes=(15, 7)
 
 logging.error(evaluation[0].keys())
 
+
+def moving_average(a, n=10):
+    ret = np.cumsum(a, dtype=float)
+    ret[n:] = ret[n:] - ret[:-n]
+    return ret / n
+
+
 def plot(what: str, label:str=""):
     plt.figure(figsize=figsizes)
     for _round in evaluation:
         plt.plot(_round['total_steps'], _round[what], label=f"{parameter}={_round['params'][parameter]:.4f}")
+        plt.plot(_round['total_steps'], moving_average(_round[what]), label=f"{parameter}={_round['params'][parameter]:.4f}")
 
     label = what if what else label
 
