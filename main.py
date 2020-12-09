@@ -50,11 +50,11 @@ parameter = {
 
 # HYPERPARAMETER training.
 hyperparameter_space = {
-    "hyperparmeter_round": "gamma",
-    "gamma": hp.quniform('gamma', 0.7, 1, 0.01),
+    "hyperparmeter_round": "hidden_dim",
+    #"gamma": hp.quniform('gamma', 0.7, 1, 0.01),
     #"alpha": hp.quniform('alpha', 0.0005, 0.1, 0.001),
-    #"tau": hp.uniform('tau', 0, 0.05),
-    "hidden_dim": hp.choice('hidden_dim', [256]),
+    # "tau": hp.uniform('tau', 0, 0.05),
+    "hidden_dim": hp.choice('hidden_dim', [128, 256, 512]),
     "num_updates": 1
 }
 
