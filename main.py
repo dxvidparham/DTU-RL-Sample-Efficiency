@@ -43,7 +43,7 @@ parameter = {
     "gpu_device": "0",
 
     #alpha
-    "init_alpha": 0.5,
+    "init_alpha": 0.496,
     "alpha_lr": 1e-3,
     "alpha_beta": 0.9,
     "alpha_decay_deactivate": False
@@ -51,11 +51,11 @@ parameter = {
 
 # HYPERPARAMETER training.
 hyperparameter_space = {
-    "hyperparmeter_round": "init_alpha",
-    "init_alpha": hp.quniform('init_alpha', 0.001, 0.5, 0.001),
+    "hyperparmeter_round": "hidden_dim",
+    #"init_alpha": hp.quniform('init_alpha', 0.001, 0.5, 0.001),
     #"alpha": hp.quniform('alpha', 0.0005, 0.1, 0.001),
     #"tau": hp.uniform('tau', 0, 0.05),
-    "hidden_dim": hp.choice('hidden_dim', [256]),
+    "hidden_dim": hp.choice('hidden_dim', [256, 512, 1024]),
     "num_updates": 1
 }
 
