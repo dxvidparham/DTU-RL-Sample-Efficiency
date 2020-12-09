@@ -31,7 +31,7 @@ parameter = {
 
     # Environment
     "env_domain": "cartpole",
-    "env_task": "balance",
+    "env_task": "swingup",
     "seed": 1,
     "frame-skip": 8,
 
@@ -51,7 +51,6 @@ parameter = {
     "init_alpha": 0.5,
     "alpha_lr": 1e-3,
     "alpha_beta": 0.9,
-    "alpha_decay_activated": True
 }
 
 # HYPERPARAMETER training.

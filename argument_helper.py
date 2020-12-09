@@ -93,7 +93,7 @@ def parse(defaults: dict) -> dict:
 
     parser.add_argument('--alpha_decay_activated',
                         default=True,
-                        action='store_true')
+                        action='store_false')
     # ############################################################
     # Environment
     # ############################################################

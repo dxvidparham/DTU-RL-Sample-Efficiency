@@ -22,7 +22,7 @@ from matplotlib import pyplot as plt
 ##
 
 
-filename = "alpha_init_08_12_2020-17_38_28"
+filename = "init_alpha_09_12_2020-13_38_08"
 
 ending = "model"
 
