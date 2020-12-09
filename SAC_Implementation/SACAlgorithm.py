@@ -70,7 +70,9 @@ class SACAlgorithm:
             replay_buffer_size=param.get('replay_buffer_size'),
             gpu_device=param.get('gpu_device')
         )
-        self.alpha_decay_activated = param.get('alpha_decay_activated')
+
+
+        self.alpha_decay_activated = not param.get('alpha_decay_deactivate')
         if self.alpha_decay_activated:
             self.log_alpha = torch.tensor(np.log(param.get('init_alpha'))).to(self.device)
             self.log_alpha.requires_grad = True
@@ -137,7 +139,7 @@ class SACAlgorithm:
             self.log_alpha_optimizer.step()
         else:
             alpha_loss = 0
-
+        
         return policy_loss.item(), alpha_loss
 
     def update(self, step):

@@ -91,9 +91,9 @@ def parse(defaults: dict) -> dict:
                         # TODO Add more meaningful description
                         help='')
 
-    parser.add_argument('--alpha_decay_activated',
-                        default=True,
-                        action='store_false')
+    parser.add_argument('--alpha_decay_deactivate',
+                        default=defaults['alpha_decay_deactivate'],
+                        action='store_true')
     # ############################################################
     # Environment
     # ############################################################

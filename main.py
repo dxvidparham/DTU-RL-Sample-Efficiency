@@ -51,6 +51,7 @@ parameter = {
     "init_alpha": 0.5,
     "alpha_lr": 1e-3,
     "alpha_beta": 0.9,
+    "alpha_decay_deactivate": False
 }
 
 # HYPERPARAMETER training.
