@@ -1,3 +1,4 @@
+import copy
 import logging
 import sys
 
@@ -10,13 +11,6 @@ from torch.distributions.normal import Normal
 
 from .ranger import Ranger  # this is from ranger.py
 
-
-import copy
-"""
-SAC uses two different networks:
-a soft Q-function Q parameterized by θ,
-and a policy function π parameterized by ϕ
-"""
 
 def weight_init(m):
     """Custom weight init for Conv2D and Linear layers."""

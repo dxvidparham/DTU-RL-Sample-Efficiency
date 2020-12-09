@@ -21,12 +21,10 @@ from matplotlib import pyplot as plt
 
 ##
 
-
-filename = "alpha_init_08_12_2020-17_38_28"
-
+filename = "gamma_07_12_2020-20_34_06"
 ending = "model"
 
-parameter = "init_alpha"
+parameter = "alpha"
 
 with open(f"results/{filename}.{ending}", "rb") as f:
     evaluation = pickle.load(f)
@@ -36,7 +34,7 @@ with open(f"results/{filename}.{ending}", "rb") as f:
 values = list(map(lambda x: x['params'][parameter], evaluation))
 logging.info(values)
 
-figsizes=(15, 7)
+figsizes = (15, 7)
 
 logging.error(evaluation[0].keys())
 
@@ -47,15 +45,20 @@ def moving_average(a, n=10):
     return ret / n
 
 
-def plot(what: str, label:str=""):
+def plot(what: str, label: str = ''):
     plt.figure(figsize=figsizes)
     for _round in evaluation:
-        plt.plot(_round['total_steps'], _round[what], label=f"{parameter}={_round['params'][parameter]:.4f}")
-        plt.plot(_round['total_steps'], moving_average(_round[what]), label=f"{parameter}={_round['params'][parameter]:.4f}")
+
+        p = plt.plot(_round['total_steps'], moving_average(_round[what]),
+                 label=f"{parameter}={_round['params'][parameter]:.4f}")
+        color = p[0].get_color()
+        plt.plot(_round['total_steps'], _round[what],
+                 c=color, alpha=0.2)
 
     label = what if what else label
 
-    plt.title(f"{evaluation[0]['params']['env_domain'].capitalize()}:{evaluation[0]['params']['env_task'].capitalize()} - Optimization of {parameter}")
+    plt.title(
+        f"{evaluation[0]['params']['env_domain'].capitalize()}:{evaluation[0]['params']['env_task'].capitalize()} - Optimization of {parameter}")
     plt.xlabel("Update steps")
     plt.ylabel(f"Average {label}")
     plt.legend()

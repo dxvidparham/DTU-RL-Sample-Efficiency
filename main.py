@@ -29,7 +29,7 @@ parameter = {
     "tau": 0.01,  # for target network soft update,
     # Environment
     "env_domain": "cartpole",
-    "env_task": "balance",
+    "env_task": "swingup",
     "seed": 1,
     "frame-skip": 8,
     # Parameter for running RL
@@ -46,7 +46,7 @@ parameter = {
     "init_alpha": 0.5,
     "alpha_lr": 1e-3,
     "alpha_beta": 0.9,
-    "alpha_decay_activated": True
+    "alpha_decay_deactivate": False
 }
 
 # HYPERPARAMETER training.
