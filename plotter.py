@@ -21,14 +21,16 @@ class Plotter:
         self.lengths = []
         self.policy_losses = []
         self.q_losses = []
+        self.a_losses = []
         self.total_steps = []
         self.time = []
 
-    def add_to_lists(self, reward, length, policy_loss, q_loss, total_steps, episode, time, log="INFO"):
+    def add_to_lists(self, reward, length, policy_loss, q_loss, a_loss,total_steps, episode, time, log="INFO"):
         self.rewards.append(reward)
         self.lengths.append(length)
         self.policy_losses.append(policy_loss)
         self.q_losses.append(q_loss)
+        self.a_losses.append(a_loss)
         self.total_steps.append(total_steps)
         self.time.append(time)
 
@@ -38,11 +40,12 @@ class Plotter:
                                   reward=reward,
                                   p_loss=policy_loss,
                                   q_loss=q_loss,
+                                  a_loss=a_loss,
                                   time=time,
                                   level=log)
 
     def get_lists(self):
-        return self.rewards, self.lengths, self.policy_losses, self.q_losses, self.total_steps, self.time
+        return self.rewards, self.lengths, self.policy_losses, self.q_losses, self.total_steps, self.time, self.a_losses
 
     def plot(self):
         # #plt.style.use('fivethirtyeight')
