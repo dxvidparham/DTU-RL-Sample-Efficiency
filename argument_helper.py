@@ -72,7 +72,28 @@ def parse(defaults: dict) -> dict:
                         type=float,
                         # TODO Add more meaningful description
                         help='')
+    # ############################################################
+    # alpha decay
+    # ############################################################
+    parser.add_argument('--init_alpha',
+                        default=defaults['init_alpha'],
+                        type=float,
+                        # TODO Add more meaningful description
+                        help='')
+    parser.add_argument('--alpha_lr',
+                        default=defaults['alpha_lr'],
+                        type=float,
+                        # TODO Add more meaningful description
+                        help='')
+    parser.add_argument('--alpha_beta',
+                        default=defaults['alpha_beta'],
+                        type=float,
+                        # TODO Add more meaningful description
+                        help='')
 
+    parser.add_argument('--alpha_decay_deactivate',
+                        default=defaults['alpha_decay_deactivate'],
+                        action='store_true')
     # ############################################################
     # Environment
     # ############################################################

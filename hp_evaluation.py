@@ -24,7 +24,7 @@ from matplotlib import pyplot as plt
 filename = "gamma_07_12_2020-20_34_06"
 ending = "model"
 
-parameter = "gamma"
+parameter = "alpha"
 
 with open(f"results/{filename}.{ending}", "rb") as f:
     evaluation = pickle.load(f)
