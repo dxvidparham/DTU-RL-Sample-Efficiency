@@ -83,7 +83,11 @@ def run_sac(hyperparameter_space: dict) -> Dict:
                            "sample_batch_size": hyperparameter_space.get('sample_batch_size'),
                            "replay_buffer_size": hyperparameter_space.get('replay_buffer_size'),
                            "gpu_device": hyperparameter_space.get('gpu_device'),
-                           "policy_function": hyperparameter_space.get('policy_function')
+                           "policy_function": hyperparameter_space.get('policy_function'),
+                           "init_alpha": hyperparameter_space.get('init_alpha'),
+                           "alpha_lr": hyperparameter_space.get('alpha_lr'),
+                           "alpha_beta": hyperparameter_space.get('alpha_beta'),
+                           "alpha_decay_activated": hyperparameter_space.get('alpha_decay_activated')
                        })
 
     video, plotter, recording_interval = initialize_plotting(hyperparameter_space)
@@ -95,7 +99,7 @@ def run_sac(hyperparameter_space: dict) -> Dict:
 
             logging.debug(f"Start EPISODE {_episode + 1}")
 
-            ep_reward, policy_loss_incr, q_loss_incr, length = 0, [], [], 0
+            ep_reward, policy_loss_incr, q_loss_incr, alpha_loss_incr, length = 0, [], [], [], 0
 
             # Observe state
             current_state = env.reset()
@@ -131,7 +135,7 @@ def run_sac(hyperparameter_space: dict) -> Dict:
                 # logging.warning("STEEEEEP 9")
                 # if sac.buffer.length > sac.sample_batch_size:
                 if sac.buffer.length > 1000:
-                    _polo, _qlo = [], []
+                    _polo, _qlo, _alo = [], [], []
                     # TODO REWRITE
                     update_steps = hyperparameter_space.get('max_steps') if total_step == hyperparameter_space.get(
                         'max_steps') else hyperparameter_space.get('num_updates')
@@ -140,9 +144,10 @@ def run_sac(hyperparameter_space: dict) -> Dict:
                         _metric = sac.update(step)
                         _polo.append(_metric[0])
                         _qlo.append(_metric[1])
-
+                        _alo.append(_metric[2])
                     policy_loss_incr.append(sum(_polo) / len(_polo))
                     q_loss_incr.append(sum(_qlo) / len(_qlo))
+                    alpha_loss_incr.append(sum(_alo) / len(_alo))
                     length = step
 
                 if _episode % recording_interval == 0: video.record(env)
@@ -153,11 +158,14 @@ def run_sac(hyperparameter_space: dict) -> Dict:
 
             avg_ploss = sum(policy_loss_incr) / len(policy_loss_incr) if len(policy_loss_incr) != 0 else -1
             avg_qloss = sum(q_loss_incr) / len(q_loss_incr) if len(q_loss_incr) != 0 else -1
+            avg_aloss = sum(alpha_loss_incr) / len(alpha_loss_incr) if len(alpha_loss_incr) != 0 else -1
+
 
             plotter.add_to_lists(reward=ep_reward,
                                  length=length,
                                  policy_loss=avg_ploss,
                                  q_loss=avg_qloss,
+                                 a_loss=avg_aloss,
                                  total_steps=total_step,
                                  episode=_episode,
                                  time=_end - _start,
@@ -171,7 +179,7 @@ def run_sac(hyperparameter_space: dict) -> Dict:
         plotter.plot()
         pass
 
-    rew, _, q_losses, policy_losses, total_step, timing = plotter.get_lists()
+    rew, _, q_losses, policy_losses, total_step, timing, a_losses = plotter.get_lists()
 
     # Give back the error which should be optimized by the hyperparameter tuner
     max_reward = max(np.array(rew))
@@ -181,6 +189,7 @@ def run_sac(hyperparameter_space: dict) -> Dict:
             'max_reward': max_reward,
             'q_losses': q_losses,
             'policy_losses': policy_losses,
+            'alpha_losses': a_losses,
             'rewards': rew,
             'total_steps': total_step,
             'time': timing,

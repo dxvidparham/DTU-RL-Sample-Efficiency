@@ -20,10 +20,10 @@ from matplotlib import pyplot as plt
 
 ##
 
-filename = "alphaupdate_07_12_2020-15_01_57"
+filename = "alpha_init_08_12_2020-17_38_28"
 ending = "model"
 
-parameter = "alpha"
+parameter = "init_alpha"
 
 with open(f"results/{filename}.{ending}", "rb") as f:
     evaluation = pickle.load(f)
