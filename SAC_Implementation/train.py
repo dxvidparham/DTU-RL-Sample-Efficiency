@@ -37,7 +37,7 @@ def prepare_hyperparameter_tuning(hyperparameter_space, max_evals=2):
                     algo=tpe.suggest,
                     trials=trials,
                     max_evals=max_evals,
-                    trials_save_file="file_path"
+                    trials_save_file=file_path
                     )
 
         logging.info("WE ARE DONE. THE BEST TRIAL IS:")

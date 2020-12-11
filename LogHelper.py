@@ -26,14 +26,37 @@ def log_step(_episode, step, reward, action):
         f"--EPISODE {(str(_episode + 1).ljust(2))}.{str(step).ljust(4)} | {colored_log_text(f'rew: {reward:.4f}', 'DARKGREEN')} | action: {action} ")
 
 
-def log_episode(_episode, step, reward, p_loss, q_loss, a_loss,time, level="DEBUG"):
+def log_episode(_episode, step, reward, p_loss, q_loss, a_loss, time, level="DEBUG"):
     # p_loss = sum(p_loss) / len(p_loss) if len(p_loss) != 0 else -1
     # q_loss = sum(q_loss) / len(q_loss) if len(q_loss) != 0 else -1
+    spacing = 10
+
+    _ep = str(_episode + 1).ljust(4)
+
+    _rew_color = "RED"
+    if reward < 50:
+        _rew_color = "RED"
+    elif reward < 100:
+        _rew_color = "YELLOW"
+    else:
+        _rew_color = "BRGREEN"
+
+    _rew = colored_log_text(f'{reward:.2f}', _rew_color).ljust(spacing)
+    _ploss = colored_log_text(f'{p_loss:.4f}'.ljust(spacing), "RED" if p_loss > 100 else "RESET")
+    _qloss = colored_log_text(f'{q_loss:.4f}'.ljust(spacing), "RED" if q_loss > 1000 else "RESET")
+
+    _alpha_color = "RESET"
+    if a_loss > 0.5:
+        _alpha_color = "YELLOW"
+    elif a_loss > 1:
+        _alpha_color ="RED"
+
+    _alpha = colored_log_text(f'{a_loss:.4f}'.ljust(spacing), _alpha_color)
+    _time = f'{time:0.2f}s'.ljust(spacing)
 
     level = logging.getLevelName(level)
     logging.log(level,
-                f"EPISODE {str(_episode + 1).ljust(4)} | Reward {reward:.4f} | P-Loss {p_loss:.4f} | Q-Loss {q_loss:.4f} | a-Loss {a_loss:.4f} | time {time:0.2f}s"
-                )
+                f"EPISODE {_ep} | Reward {_rew} | P-Loss {_ploss} | Q-Loss {_qloss} | alpha {_alpha} | time {_time}")
 
 
 def setup_logging(args):
