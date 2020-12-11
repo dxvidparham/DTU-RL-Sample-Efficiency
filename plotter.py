@@ -56,7 +56,6 @@ class Plotter:
         ax[0][0].set_title('Rewards per Step')
         ax[0][0].plot(self.total_steps, self.rewards)
         ax[0][1].set_title('Policy loss per Step')
-        logging.error(self.policy_losses)
         ax[0][1].plot(self.total_steps, self.policy_losses)
         ax[1][0].set_title('Q-Losses per Step')
         ax[1][0].plot(self.total_steps, self.q_losses)

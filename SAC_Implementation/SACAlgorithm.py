@@ -71,7 +71,6 @@ class SACAlgorithm:
             gpu_device=param.get('gpu_device')
         )
 
-
         self.alpha_decay_activated = not param.get('alpha_decay_deactivate')
         if self.alpha_decay_activated:
             self.log_alpha = torch.tensor(np.log(param.get('init_alpha'))).to(self.device)
@@ -87,8 +86,6 @@ class SACAlgorithm:
         self.sample_batch_size,  self.tau, self.gamma = (param.get('sample_batch_size'),
                                                                     param.get('tau'),
                                                                     param.get('gamma'))
-
-
 
     def _update_critic(self, state, action, y_hat):
         q1_forward = self.soft_q1(state.float(), action.float())
@@ -131,6 +128,8 @@ class SACAlgorithm:
         policy_loss.backward()
         self.policy.optimizer.step()
 
+        alpha_applied=deepcopy(self.log_alpha).exp()
+
         if self.alpha_decay_activated:
             self.log_alpha_optimizer.zero_grad()
             alpha_loss = (self.log_alpha *
@@ -140,7 +139,7 @@ class SACAlgorithm:
         else:
             alpha_loss = 0
         
-        return policy_loss.item(), alpha_loss
+        return policy_loss.item(), alpha_applied #alpha_loss
 
     def update(self, step):
 

@@ -28,26 +28,23 @@ def prepare_hyperparameter_tuning(hyperparameter_space, max_evals=2):
     :return: Losses
     """
     try:
+        filename = datetime.now().strftime("%d_%m_%Y-%H_%M_%S")
+        file_path = f"hp_trials/{hyperparameter_space.get('hyperparmeter_round')}_{filename}.model"
+
         trials = Trials()
         best = fmin(run_sac,
                     hyperparameter_space,
                     algo=tpe.suggest,
                     trials=trials,
-                    max_evals=max_evals)
+                    max_evals=max_evals,
+                    trials_save_file="file_path"
+                    )
 
         logging.info("WE ARE DONE. THE BEST TRIAL IS:")
         LogHelper.print_dict({**hyperparameter_space, **best}, "Final Parameters")
 
-        filename = datetime.now().strftime("%d_%m_%Y-%H_%M_%S")
-        file_path = f"results/{hyperparameter_space.get('hyperparmeter_round')}_{filename}.model"
-
-        with open(file_path, 'wb') as f:
-            pickle.dump(trials.results, f)
-        f.close()
-
         logging.info("--------------------------------------------")
         logging.info(f"For more information see {file_path}")
-        # return run_sac(hyperparameter_space)
     except KeyboardInterrupt as e:
         logging.error("KEYBOARD INTERRUPT")
         raise
@@ -160,7 +157,6 @@ def run_sac(hyperparameter_space: dict) -> Dict:
             avg_qloss = sum(q_loss_incr) / len(q_loss_incr) if len(q_loss_incr) != 0 else -1
             avg_aloss = sum(alpha_loss_incr) / len(alpha_loss_incr) if len(alpha_loss_incr) != 0 else -1
 
-
             plotter.add_to_lists(reward=ep_reward,
                                  length=length,
                                  policy_loss=avg_ploss,
@@ -170,6 +166,15 @@ def run_sac(hyperparameter_space: dict) -> Dict:
                                  episode=_episode,
                                  time=_end - _start,
                                  log="INFO" if _episode % 1 == 0 else "DEBUG")
+
+            if avg_qloss > 10000:
+                max_reward = np.inf
+                logging.error(f"ABORT DUE TO TOO HIGH QLOSS: {avg_qloss}")
+                break
+            if avg_ploss > 10000:
+                max_reward = np.inf
+                logging.error(f"ABORT DUE TO TOO HIGH POLICY LOSS: {avg_ploss}")
+                break
 
     except KeyboardInterrupt as e:
         logging.error("KEYBOARD INTERRUPT")
@@ -183,6 +188,7 @@ def run_sac(hyperparameter_space: dict) -> Dict:
 
     # Give back the error which should be optimized by the hyperparameter tuner
     max_reward = max(np.array(rew))
+
     return {'loss': -max_reward,
             'status': STATUS_OK,
             'model': sac,
@@ -194,6 +200,7 @@ def run_sac(hyperparameter_space: dict) -> Dict:
             'total_steps': total_step,
             'time': timing,
             'params': hyperparameter_space}
+
 
 def initialize_environment(domain_name, task_name, seed, frame_skip):
     """

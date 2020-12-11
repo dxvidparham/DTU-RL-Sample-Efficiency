@@ -6,6 +6,7 @@ They include the model, as well as the performance of each of them.
 import logging
 from datetime import datetime
 import numpy as np
+from hyperopt import Trials
 
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                     datefmt='%Y-%m-%d:%H:%M:%S',
@@ -21,22 +22,24 @@ from matplotlib import pyplot as plt
 
 ##
 
-filename = "gamma_07_12_2020-20_34_06"
-ending = "model"
+dir = "hp_trials"
+filename = "hp_trials2"
+ending = "trials"
 
-parameter = "alpha"
+parameter = ["hidden_dim", 'init_alpha']
 
-with open(f"results/{filename}.{ending}", "rb") as f:
+if dir == "results":
+    logging.warning("THIS IS DEPRECATED. PLEASE USE THE NEWER TRIALS FILES")
+
+with open(f"{dir}/{filename}.{ending}", "rb") as f:
     evaluation = pickle.load(f)
 
-#  dict_keys(['loss', 'status', 'model', 'max_reward', 'q_losses', 'policy_losses', 'rewards'])
+evaluation = evaluation.results if dir == "hp_trials" else evaluation
 
-values = list(map(lambda x: x['params'][parameter], evaluation))
-logging.info(values)
+#  dict_keys(['loss', 'status', 'model', 'max_reward', 'q_losses', 'policy_losses', 'rewards'])
+print(len(evaluation))
 
 figsizes = (15, 7)
-
-logging.error(evaluation[0].keys())
 
 
 def moving_average(a, n=10):
@@ -48,9 +51,10 @@ def moving_average(a, n=10):
 def plot(what: str, label: str = ''):
     plt.figure(figsize=figsizes)
     for _round in evaluation:
+        paras = map(lambda para: f"{para}={_round['params'][para]:.4f}", parameter)
+        label = ", ".join(paras)
 
-        p = plt.plot(_round['total_steps'], moving_average(_round[what]),
-                 label=f"{parameter}={_round['params'][parameter]:.4f}")
+        p = plt.plot(_round['total_steps'], moving_average(_round[what]), label=label)
         color = p[0].get_color()
         plt.plot(_round['total_steps'], _round[what],
                  c=color, alpha=0.2)
@@ -58,13 +62,13 @@ def plot(what: str, label: str = ''):
     label = what if what else label
 
     plt.title(
-        f"{evaluation[0]['params']['env_domain'].capitalize()}:{evaluation[0]['params']['env_task'].capitalize()} - Optimization of {parameter}")
+        f"{evaluation[0]['params']['env_domain'].capitalize()}:{evaluation[0]['params']['env_task'].capitalize()} - Optimization of {', '.join(parameter)}")
     plt.xlabel("Update steps")
     plt.ylabel(f"Average {label}")
     plt.legend()
     plt.tight_layout()
     date_now = datetime.now().strftime("%Y_%M_%d_%H_%M_%S")
-    filename = f"{parameter}_{what}_{date_now}"
+    filename = f"{'_'.join(parameter)}_{what}_{date_now}"
     plt.savefig(f'hp_figures/{filename}.pdf')
 
 

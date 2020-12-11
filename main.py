@@ -1,3 +1,4 @@
+from LogHelper import setup_logging
 import datetime
 
 from hyperopt import hp
@@ -18,44 +19,51 @@ parameter = {
     "log_file": f"{DEFAULT_LOG_DIR}/{DEFAULT_LOG_FILE}",
     # video
     "save_video": True,
-    "recording_interval": 5,
+    "recording_interval": 500,
+
     # Neural Network stuff
-    "hidden_dim": 256,
+    "hidden_dim": 1024,
     "lr-actor": 5e-4,
     "lr-critic": 1e-3,
+
     # Parameter for RL
-    "gamma": 0.98,
+    "gamma": 0.99,
     "alpha": 1e-2,
     "tau": 0.01,  # for target network soft update,
+
     # Environment
-    "env_domain": "cartpole",
-    "env_task": "swingup",
+    "env_domain": "walker",
+    "env_task": "walk",
     "seed": 1,
-    "frame-skip": 8,
+    "frame-skip": 4,
+
     # Parameter for running RL
     "replay_buffer_size": 10 ** 6,
-    "sample_batch_size": 128,
-    "episodes": 500,
+    "sample_batch_size": 256,
+    "episodes": 1000,
     "max_steps": 250,
     # Hyperparameter-tuning
-    "max_evals": 10,
+    "max_evals": 1,
+
     # ID of the GPU to use
     "gpu_device": "0",
 
     #alpha
-    "init_alpha": 0.496,
-    "alpha_lr": 1e-3,
-    "alpha_beta": 0.9,
+    "init_alpha": 0.1,
+    "alpha_lr": 1e-4,
+    "alpha_beta": 0.5,
     "alpha_decay_deactivate": False
 }
 
 # HYPERPARAMETER training.
 hyperparameter_space = {
-    "hyperparmeter_round": "hidden_dim",
-    #"init_alpha": hp.quniform('init_alpha', 0.001, 0.5, 0.001),
+    "hyperparmeter_round": "walker_hidden_dim",
+    #"init_alpha": hp.quniform('init_alpha', 0, 0.4, 0.01),
+    #"gamma": hp.quniform('gamma', 0.8,0.99,0.01),
+    #"tau": hp.quniform('tau', 0.005,0.2,0.001),
     #"alpha": hp.quniform('alpha', 0.0005, 0.1, 0.001),
     #"tau": hp.uniform('tau', 0, 0.05),
-    "hidden_dim": hp.choice('hidden_dim', [256, 512, 1024]),
+    #"hidden_dim": hp.choice('hidden_dim', [1024, 2048, 4096]),
     "num_updates": 1
 }
 
@@ -68,6 +76,6 @@ setup_logging(args)
 from SAC_Implementation import train
 
 # START training. Set Max Eval to 1 to just train one episode.
-train.prepare_hyperparameter_tuning(
-    {**args, **hyperparameter_space}, max_evals=args["max_evals"]
-)
+train.prepare_hyperparameter_tuning({**args, **hyperparameter_space},
+                                    max_evals=args['max_evals'])
+

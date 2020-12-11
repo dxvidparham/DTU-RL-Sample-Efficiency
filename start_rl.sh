@@ -15,7 +15,6 @@ module load cuda/8.0
 module load cudnn/v7.0-prod-cuda8
 module load ffmpeg/4.2.2
 
-
 # Edit environment variables
 #unset PYTHONHOME
 #unset PYTHONPATH
@@ -23,14 +22,12 @@ module load ffmpeg/4.2.2
 #export PATH="$HOME/.local/bin:$PATH"
 #export IS_BSUB_EGL=1
 
-python3 main.py --env-domain=cartpole\
-                --env-task=swingup\
+python3 main.py --env-domain=walker\
+                --env-task=walk\
                 --seed=1\
                 --save_video\
-                --recording_interval=100\
-                --episodes=500\
-                --max_eval=2\
+                --recording_interval=499\
+                --episodes=10\
+                --max_eval=3\
                 --log_level="INFO"\
-                --gpu_device=0\
-
-# make episodes = 500
+                --gpu_device=0
