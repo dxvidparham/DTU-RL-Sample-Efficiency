@@ -50,6 +50,15 @@ def parse(defaults: dict) -> dict:
                         default=defaults['lr-critic'],
                         # TODO Add more meaningful description
                         help='Learning Rate')
+    parser.add_argument('--policy-hidden-layers',
+                        type=float,
+                        default=defaults['policy_hidden_layers'],
+                        help='Hidden layers for the policy network')
+
+    parser.add_argument('--q-hidden-layers',
+                        type=float,
+                        default=defaults['q_hidden_layers'],
+                        help='Hidden layers for the Q networks')
 
     # #############################################################
     # Parameter for RL

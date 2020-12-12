@@ -84,7 +84,10 @@ def run_sac(hyperparameter_space: dict) -> Dict:
                            "init_alpha": hyperparameter_space.get('init_alpha'),
                            "alpha_lr": hyperparameter_space.get('alpha_lr'),
                            "alpha_beta": hyperparameter_space.get('alpha_beta'),
-                           "alpha_decay_deactivate": hyperparameter_space.get('alpha_decay_deactivate')
+                           "alpha_decay_deactivate": hyperparameter_space.get('alpha_decay_deactivate'),
+
+                           "policy_hidden_layers": hyperparameter_space.get('policy_hidden_layers'),
+                           "q_hidden_layers": hyperparameter_space.get('q_hidden_layers')
                        })
 
     video, plotter, recording_interval = initialize_plotting(hyperparameter_space)

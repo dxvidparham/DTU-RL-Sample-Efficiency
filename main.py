@@ -35,6 +35,9 @@ parameter = {
     "lr-actor": 5e-4,
     "lr-critic": 1e-3,
 
+    "policy_hidden_layers": 2,
+    "q_hidden_layers": 2,
+
     # Parameter for RL
     "gamma": 0.99,
     "alpha": 1e-2,
@@ -67,13 +70,11 @@ parameter = {
 # HYPERPARAMETER training.
 hyperparameter_space = {
     "hyperparmeter_round": "walker",
-    #"init_alpha": hp.quniform('init_alpha', 0, 0.4, 0.01),
-    #"gamma": hp.quniform('gamma', 0.8,0.99,0.01),
-    #"tau": hp.quniform('tau', 0.005,0.2,0.001),
-    "alpha": hp.quniform('alpha', 0.0005, 0.1, 0.001),
-    #"tau": hp.uniform('tau', 0, 0.05),
-    #"hidden_dim": hp.choice('hidden_dim', [1024, 2048, 4096]),
-    "num_updates": 1
+    "init_alpha": hp.quniform('init_alpha', 0, 0.1, 0.01),
+    "gamma": hp.quniform('gamma', 0.9, 0.99, 0.01),
+    "tau": hp.quniform('tau', 0.01, 0.1, 0.001),
+    "hidden_dim": hp.choice('hidden_dim', [512, 1024, 2048]),
+    "num_updates": hp.choice('num_updates', [1, 5, 10]),
 }
 
 

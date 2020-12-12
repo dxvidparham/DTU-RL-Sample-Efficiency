@@ -22,6 +22,9 @@ def initialize_nets_and_buffer(state_dim: int,
         SoftQNetwork, SoftQNetwork, SoftQNetwork, SoftQNetwork, PolicyNetwork, ReplayBuffer):
     """
     Method to initialize the neural networks as well as the replay buffer
+    :param gpu_device:
+    :type q_layers: object
+    :param policy_layers:
     :param state_dim: Dimension of the state space
     :param action_dim: Dimension of the action space
     :param q_hidden: Hidden Size of the Q networks
@@ -31,16 +34,28 @@ def initialize_nets_and_buffer(state_dim: int,
     :return: Returns the networks (Soft1, soft2, target1,target2, Policy, Buffer)
     """
     # We need to networks: 1 for the value function first
-    soft_q1 = SoftQNetwork(state_dim, action_dim, q_hidden, learning_rates.get('critic'), gpu_device,
+    soft_q1 = SoftQNetwork(state_dim,
+                           action_dim,
+                           q_hidden,
+                           learning_rates.get('critic'),
+                           gpu_device,
                            hidden_layers=q_layers)
-    soft_q2 = SoftQNetwork(state_dim, action_dim, q_hidden, learning_rates.get('critic'), gpu_device,
+    soft_q2 = SoftQNetwork(state_dim,
+                           action_dim,
+                           q_hidden,
+                           learning_rates.get('critic'),
+                           gpu_device,
                            hidden_layers=q_layers)
 
     # Then another one for calculating the targets
     soft_q1_targets = deepcopy(soft_q1)
     soft_q2_targets = deepcopy(soft_q1)
 
-    policy = PolicyNetwork(state_dim, action_dim, policy_hidden, learning_rates.get('actor'), gpu_device,
+    policy = PolicyNetwork(state_dim,
+                           action_dim,
+                           policy_hidden,
+                           learning_rates.get('actor'),
+                           gpu_device,
                            hidden_layers=policy_layers)
 
     # Initialize the Replay Buffer
@@ -68,8 +83,8 @@ class SACAlgorithm:
             action_dim=self.action_dim,
             q_hidden=param.get('hidden_dim'),
             policy_hidden=param.get('hidden_dim'),
-            q_layers=param.get('hidden_layers', 2),
-            policy_layers=param.get('hidden_layers', 2),
+            q_layers=param.get('q_hidden_layers'),
+            policy_layers=param.get('policy_hidden_layers'),
             learning_rates={
                 'critic': param.get('lr_critic'),
                 'actor': param.get('lr_actor')

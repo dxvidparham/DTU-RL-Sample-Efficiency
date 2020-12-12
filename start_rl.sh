@@ -28,6 +28,6 @@ python3 main.py --env-domain=walker\
                 --save_video\
                 --recording_interval=200\
                 --episodes=50000\
-                --max_eval=1\
+                --max_eval=30\
                 --log_level="INFO"\
                 --gpu_device=0

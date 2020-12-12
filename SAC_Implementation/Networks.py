@@ -108,8 +108,8 @@ class PolicyNetwork(nn.Module):
             self.hidden_layer.append(nn.Linear(hidden_dim, hidden_dim).to(self.device))
 
         self.mean_linear = nn.Linear(hidden_dim, action_dim)
-        self.mean_linear.weight.data.uniform_(-init_w, init_w)
-        self.mean_linear.bias.data.uniform_(-init_w, init_w)
+        # self.mean_linear.weight.data.uniform_(-init_w, init_w)
+        # self.mean_linear.bias.data.uniform_(-init_w, init_w)
 
         self.log_std_linear = nn.Linear(hidden_dim, action_dim)
         self.apply(weight_init)
