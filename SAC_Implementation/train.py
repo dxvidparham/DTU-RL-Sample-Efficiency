@@ -90,6 +90,8 @@ def run_sac(hyperparameter_space: dict) -> Dict:
     video, plotter, recording_interval = initialize_plotting(hyperparameter_space)
     total_step = 0
 
+    reward_velocity = 0
+
     try:
         for _episode in range(hyperparameter_space.get('episodes')):
             _start = time.time()
@@ -97,7 +99,6 @@ def run_sac(hyperparameter_space: dict) -> Dict:
             logging.debug(f"Start EPISODE {_episode + 1}")
 
             ep_reward, policy_loss_incr, q_loss_incr, alpha_loss_incr, length = 0, [], [], [], 0
-
             # Observe state
             current_state = env.reset()
 
@@ -157,6 +158,7 @@ def run_sac(hyperparameter_space: dict) -> Dict:
             avg_qloss = sum(q_loss_incr) / len(q_loss_incr) if len(q_loss_incr) != 0 else -1
             avg_aloss = sum(alpha_loss_incr) / len(alpha_loss_incr) if len(alpha_loss_incr) != 0 else -1
 
+            _last_ploss = plotter.get_last_ploss()
             plotter.add_to_lists(reward=ep_reward,
                                  length=length,
                                  policy_loss=avg_ploss,
@@ -166,6 +168,16 @@ def run_sac(hyperparameter_space: dict) -> Dict:
                                  episode=_episode,
                                  time=_end - _start,
                                  log="INFO" if _episode % 1 == 0 else "DEBUG")
+
+            if _last_ploss >= avg_ploss:
+                reward_velocity = 0
+            else:
+                reward_velocity = reward_velocity + 1
+
+            if reward_velocity > 15:
+                max_reward = np.inf
+                logging.error(f"TOO often the policy got bad: {reward_velocity}")
+                break
 
             if avg_qloss > 10000:
                 max_reward = np.inf

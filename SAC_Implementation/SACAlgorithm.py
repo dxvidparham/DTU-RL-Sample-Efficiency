@@ -15,7 +15,9 @@ def initialize_nets_and_buffer(state_dim: int,
                                policy_hidden: int,
                                learning_rates: dict,
                                replay_buffer_size: int,
-                               gpu_device: int
+                               gpu_device: int,
+                               q_layers: int,
+                               policy_layers: int
                                ) -> (
         SoftQNetwork, SoftQNetwork, SoftQNetwork, SoftQNetwork, PolicyNetwork, ReplayBuffer):
     """
@@ -29,14 +31,17 @@ def initialize_nets_and_buffer(state_dim: int,
     :return: Returns the networks (Soft1, soft2, target1,target2, Policy, Buffer)
     """
     # We need to networks: 1 for the value function first
-    soft_q1 = SoftQNetwork(state_dim, action_dim, q_hidden, learning_rates.get('critic'), gpu_device)
-    soft_q2 = SoftQNetwork(state_dim, action_dim, q_hidden, learning_rates.get('critic'), gpu_device)
+    soft_q1 = SoftQNetwork(state_dim, action_dim, q_hidden, learning_rates.get('critic'), gpu_device,
+                           hidden_layers=q_layers)
+    soft_q2 = SoftQNetwork(state_dim, action_dim, q_hidden, learning_rates.get('critic'), gpu_device,
+                           hidden_layers=q_layers)
 
     # Then another one for calculating the targets
     soft_q1_targets = deepcopy(soft_q1)
     soft_q2_targets = deepcopy(soft_q1)
 
-    policy = PolicyNetwork(state_dim, action_dim, policy_hidden, learning_rates.get('actor'), gpu_device)
+    policy = PolicyNetwork(state_dim, action_dim, policy_hidden, learning_rates.get('actor'), gpu_device,
+                           hidden_layers=policy_layers)
 
     # Initialize the Replay Buffer
     buffer = ReplayBuffer(state_dim, action_dim,
@@ -63,6 +68,8 @@ class SACAlgorithm:
             action_dim=self.action_dim,
             q_hidden=param.get('hidden_dim'),
             policy_hidden=param.get('hidden_dim'),
+            q_layers=param.get('hidden_layers', 2),
+            policy_layers=param.get('hidden_layers', 2),
             learning_rates={
                 'critic': param.get('lr_critic'),
                 'actor': param.get('lr_actor')
@@ -83,9 +90,9 @@ class SACAlgorithm:
         else:
             self.alpha = param.get('alpha')
 
-        self.sample_batch_size,  self.tau, self.gamma = (param.get('sample_batch_size'),
-                                                                    param.get('tau'),
-                                                                    param.get('gamma'))
+        self.sample_batch_size, self.tau, self.gamma = (param.get('sample_batch_size'),
+                                                        param.get('tau'),
+                                                        param.get('gamma'))
 
     def _update_critic(self, state, action, y_hat):
         q1_forward = self.soft_q1(state.float(), action.float())
@@ -128,7 +135,7 @@ class SACAlgorithm:
         policy_loss.backward()
         self.policy.optimizer.step()
 
-        alpha_applied=deepcopy(self.log_alpha).exp()
+        alpha_applied = deepcopy(self.log_alpha).exp()
 
         if self.alpha_decay_activated:
             self.log_alpha_optimizer.zero_grad()
@@ -138,8 +145,8 @@ class SACAlgorithm:
             self.log_alpha_optimizer.step()
         else:
             alpha_loss = 0
-        
-        return policy_loss.item(), alpha_applied #alpha_loss
+
+        return policy_loss.item(), alpha_applied  # alpha_loss
 
     def update(self, step):
 

@@ -2,6 +2,7 @@ import random
 import torch
 import datetime
 import numpy as np
+from hyperopt import hp
 
 from argument_helper import parse
 from LogHelper import setup_logging
@@ -30,14 +31,14 @@ parameter = {
     "recording_interval": 500,
 
     # Neural Network stuff
-    "hidden_dim": 1024,
+    "hidden_dim": 512,
     "lr-actor": 5e-4,
     "lr-critic": 1e-3,
 
     # Parameter for RL
     "gamma": 0.99,
     "alpha": 1e-2,
-    "tau": 0.01,  # for target network soft update,
+    "tau": 0.02,  # for target network soft update,
 
     # Environment
     "env_domain": "walker",
@@ -57,22 +58,22 @@ parameter = {
     "gpu_device": "0",
 
     #alpha
-    "init_alpha": 0.1,
+    "init_alpha": 0.05,
     "alpha_lr": 1e-4,
-    "alpha_beta": 0.5,
+    "alpha_beta": 0.9,
     "alpha_decay_deactivate": False
 }
 
 # HYPERPARAMETER training.
 hyperparameter_space = {
-    "hyperparmeter_round": "walker_hidden_dim",
+    "hyperparmeter_round": "walker",
     #"init_alpha": hp.quniform('init_alpha', 0, 0.4, 0.01),
     #"gamma": hp.quniform('gamma', 0.8,0.99,0.01),
     #"tau": hp.quniform('tau', 0.005,0.2,0.001),
-    #"alpha": hp.quniform('alpha', 0.0005, 0.1, 0.001),
+    "alpha": hp.quniform('alpha', 0.0005, 0.1, 0.001),
     #"tau": hp.uniform('tau', 0, 0.05),
     #"hidden_dim": hp.choice('hidden_dim', [1024, 2048, 4096]),
-    "num_updates": 5
+    "num_updates": 1
 }
 
 

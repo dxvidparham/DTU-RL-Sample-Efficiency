@@ -26,8 +26,8 @@ python3 main.py --env-domain=walker\
                 --env-task=walk\
                 --seed=1\
                 --save_video\
-                --recording_interval=100\
-                --episodes=1000\
+                --recording_interval=200\
+                --episodes=50000\
                 --max_eval=1\
                 --log_level="INFO"\
                 --gpu_device=0

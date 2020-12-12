@@ -25,7 +25,7 @@ class Plotter:
         self.total_steps = []
         self.time = []
 
-    def add_to_lists(self, reward, length, policy_loss, q_loss, a_loss,total_steps, episode, time, log="INFO"):
+    def add_to_lists(self, reward, length, policy_loss, q_loss, a_loss, total_steps, episode, time, log="INFO"):
         self.rewards.append(reward)
         self.lengths.append(length)
         self.policy_losses.append(policy_loss)
@@ -44,12 +44,16 @@ class Plotter:
                                   time=time,
                                   level=log)
 
+    def get_last_ploss(self):
+        loss = self.policy_losses[-1:]
+        return 0 if len(loss) == 0 else loss[0]
+
     def get_lists(self):
         return self.rewards, self.lengths, self.policy_losses, self.q_losses, self.total_steps, self.time, self.a_losses
 
     def plot(self):
         # #plt.style.use('fivethirtyeight')
-        #plt.style.use('ggplot')
+        # plt.style.use('ggplot')
         plt.style.use('cyberpunk')
         # #plt.style.use('default')
         f, ax = plt.subplots(2, 2, sharex=True, sharey=True)
@@ -61,7 +65,6 @@ class Plotter:
         ax[1][0].plot(self.total_steps, self.q_losses)
         ax[1][1].set_title('Time per Step')
         ax[1][1].plot(self.total_steps, self.time)
-
 
         plt.tight_layout()
         now = datetime.now().strftime("%d_%m_%Y-%H_%M_%S")

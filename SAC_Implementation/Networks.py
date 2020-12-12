@@ -35,10 +35,17 @@ class SoftQNetwork(nn.Module):
             gpu_device,
             output_dim=1,
             init_w=3e-3,
+            hidden_layers=2
     ):
         super(SoftQNetwork, self).__init__()
         self.linear1 = nn.Linear(state_dim + action_dim, hidden_dim)
-        self.linear2 = nn.Linear(hidden_dim, hidden_dim)
+        self.hidden_layer = []
+
+        self.device = torch.device(f'cuda:{gpu_device}' if torch.cuda.is_available() else 'cpu')
+
+        for i in range(hidden_layers):
+            self.hidden_layer.append(nn.Linear(hidden_dim, hidden_dim).to(self.device))
+
         self.linear3 = nn.Linear(hidden_dim, output_dim)
 
         # self.linear3.weight.data.uniform_(-init_w, init_w)
@@ -49,13 +56,15 @@ class SoftQNetwork(nn.Module):
         #self.optimizer = optim.RMSprop(self.parameters(), lr=lr_critic)
         self.optimizer = optim.Adam(self.parameters(), lr=lr_critic)
 
-        self.device = torch.device(f'cuda:{gpu_device}' if torch.cuda.is_available() else 'cpu')
         self.to(self.device)
 
     def forward(self, state, action):
         action_value = torch.cat([state.to(device=self.device), action.to(device=self.device)], 1)
+
         action_value = F.relu(self.linear1(action_value))
-        action_value = F.relu(self.linear2(action_value))
+        for j in self.hidden_layer:
+            action_value = F.relu(j(action_value))
+
         action_value_output = self.linear3(action_value)
         return action_value_output
 
@@ -84,13 +93,19 @@ class PolicyNetwork(nn.Module):
             init_w=3e-3,
             log_std_min=-10,
             log_std_max=2,
+            hidden_layers=1
     ):
         super(PolicyNetwork, self).__init__()
         self.log_std_min = log_std_min
         self.log_std_max = log_std_max
 
         self.linear1 = nn.Linear(input_dim, hidden_dim)
-        self.linear2 = nn.Linear(hidden_dim, hidden_dim)
+
+        self.device = torch.device(f'cuda:{gpu_device}' if torch.cuda.is_available() else 'cpu')
+
+        self.hidden_layer = []
+        for i in range(hidden_layers):
+            self.hidden_layer.append(nn.Linear(hidden_dim, hidden_dim).to(self.device))
 
         self.mean_linear = nn.Linear(hidden_dim, action_dim)
         self.mean_linear.weight.data.uniform_(-init_w, init_w)
@@ -105,12 +120,12 @@ class PolicyNetwork(nn.Module):
         #self.optimizer = optim.RMSprop(self.parameters(), lr=lr_policy)
         self.optimizer = optim.Adam(self.parameters(), lr=lr_policy)
 
-        self.device = torch.device(f'cuda:{gpu_device}' if torch.cuda.is_available() else 'cpu')
         self.to(self.device)
 
     def forward(self, state):
         x = F.relu(self.linear1(state))
-        x = F.relu(self.linear2(x))
+        for layer in self.hidden_layer:
+            x = F.relu(layer(x))
 
         mean = self.mean_linear(x)
 
