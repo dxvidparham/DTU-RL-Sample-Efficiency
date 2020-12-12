@@ -180,5 +180,17 @@ def parse(defaults: dict) -> dict:
                         # TODO Add more meaningful description
                         help='Specify the GPU to use. Range: 0-3')
 
+    parser.add_argument('--init_rounds',
+                        default=defaults['init_rounds'],
+                        type=str,
+                        # TODO Add more meaningful description
+                        help='Specify the GPU to use. Range: 0-3')
+
+    parser.add_argument('--num_updates',
+                        default=defaults['num_updates'],
+                        type=str,
+                        # TODO Add more meaningful description
+                        help='Specify the GPU to use. Range: 0-3')
+
     args = vars(parser.parse_args())
     return args

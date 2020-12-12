@@ -31,23 +31,23 @@ parameter = {
     "recording_interval": 500,
 
     # Neural Network stuff
-    "hidden_dim": 512,
+    "hidden_dim": 1024,
     "lr-actor": 5e-4,
     "lr-critic": 1e-3,
 
-    "policy_hidden_layers": 2,
-    "q_hidden_layers": 2,
+    "policy_hidden_layers": 3,
+    "q_hidden_layers": 3,
 
     # Parameter for RL
-    "gamma": 0.99,
+    "gamma": 0.98,
     "alpha": 1e-2,
-    "tau": 0.02,  # for target network soft update,
+    "tau": 0.01,  # for target network soft update,
 
     # Environment
     "env_domain": "walker",
     "env_task": "walk",
     "seed": 1,
-    "frame-skip": 4,
+    "frame-skip": 8,
 
     # Parameter for running RL
     "replay_buffer_size": 10 ** 6,
@@ -61,22 +61,24 @@ parameter = {
     "gpu_device": "0",
 
     #alpha
-    "init_alpha": 0.05,
+    "init_alpha": 0.5,
     "alpha_lr": 1e-4,
     "alpha_beta": 0.9,
-    "alpha_decay_deactivate": False
+    "alpha_decay_deactivate": False,
+
+    # Initial sampling
+    "init_rounds": 40,
+    "num_updates": 1
 }
 
 # HYPERPARAMETER training.
 hyperparameter_space = {
-    "hyperparmeter_round": "walker",
-    "init_alpha": hp.quniform('init_alpha', 0, 0.1, 0.01),
-    "gamma": hp.quniform('gamma', 0.9, 0.99, 0.01),
-    "tau": hp.quniform('tau', 0.01, 0.1, 0.001),
-    "hidden_dim": hp.choice('hidden_dim', [512, 1024, 2048]),
-    "num_updates": hp.choice('num_updates', [1, 5, 10]),
+    "hyperparmeter_round": "swingup_version2_",
+    # "init_alpha": hp.quniform('init_alpha', 0, 0.1, 0.01),
+    # "gamma": hp.quniform('gamma', 0.9, 0.99, 0.01),
+    # "tau": hp.quniform('tau', 0.01, 0.1, 0.001),
+    # "hidden_dim": hp.choice('hidden_dim', [512, 1024, 2048]),
 }
-
 
 args = parse(defaults=parameter)
 

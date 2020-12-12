@@ -8,6 +8,7 @@ from typing import Dict
 import numpy as np
 
 import torch
+from scipy.special.cython_special import hyperu
 
 from SAC_Implementation.SACAlgorithm import SACAlgorithm
 from VideoRecorder import VideoRecorder
@@ -111,7 +112,7 @@ def run_sac(hyperparameter_space: dict) -> Dict:
 
                 # Do the next step
                 # logging.warning("STEEEEEP 5")
-                action_mean = sac.sample_action(torch.Tensor(current_state))[0] if _episode > -1 \
+                action_mean = sac.sample_action(torch.Tensor(current_state))[0] if _episode > hyperparameter_space.get("init_rounds") \
                     else env.action_space.sample()
 
                 # logging.warning("STEEEEEP 6")

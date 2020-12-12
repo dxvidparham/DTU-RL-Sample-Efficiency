@@ -22,8 +22,8 @@ module load ffmpeg/4.2.2
 #export PATH="$HOME/.local/bin:$PATH"
 #export IS_BSUB_EGL=1
 
-python3 main.py --env-domain=walker\
-                --env-task=walk\
+python3 main.py --env-domain=cartpole\
+                --env-task=swingup\
                 --seed=1\
                 --save_video\
                 --recording_interval=200\
