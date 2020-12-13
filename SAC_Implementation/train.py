@@ -1,6 +1,7 @@
 ## Imports
 import os
 import pickle
+import random
 import time
 from datetime import datetime
 from typing import Dict
@@ -19,6 +20,14 @@ from hyperopt import fmin, tpe, Trials, STATUS_OK
 import logging
 import dmc2gym
 import LogHelper
+
+
+def set_seed(seed):
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
 
 
 def prepare_hyperparameter_tuning(hyperparameter_space, max_evals=2):
@@ -62,6 +71,8 @@ def run_sac(hyperparameter_space: dict) -> Dict:
     LogHelper.print_big_log('Initialize Hyperparameter')
     LogHelper.print_dict(hyperparameter_space, "Hyperparameter")
     LogHelper.print_big_log("Start Training")
+
+    set_seed(hyperparameter_space.get('seed'))
 
     # Initialize the environment
     env, action_dim, state_dim = initialize_environment(domain_name=hyperparameter_space.get('env_domain'),

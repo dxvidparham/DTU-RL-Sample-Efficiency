@@ -29,7 +29,7 @@ def log_step(_episode, step, reward, action):
 def log_episode(_episode, step, reward, p_loss, q_loss, a_loss, time, level="DEBUG"):
     # p_loss = sum(p_loss) / len(p_loss) if len(p_loss) != 0 else -1
     # q_loss = sum(q_loss) / len(q_loss) if len(q_loss) != 0 else -1
-    spacing = 10
+    spacing = 15
 
     _ep = str(_episode + 1).ljust(4)
 

@@ -31,12 +31,12 @@ parameter = {
     "recording_interval": 500,
 
     # Neural Network stuff
-    "hidden_dim": 1024,
+    "hidden_dim": 256,
     "lr-actor": 5e-4,
     "lr-critic": 1e-3,
 
-    "policy_hidden_layers": 3,
-    "q_hidden_layers": 3,
+    "policy_hidden_layers": 1,
+    "q_hidden_layers": 2,
 
     # Parameter for RL
     "gamma": 0.98,
@@ -44,36 +44,37 @@ parameter = {
     "tau": 0.01,  # for target network soft update,
 
     # Environment
-    "env_domain": "walker",
-    "env_task": "walk",
+    "env_domain": "cartpole",
+    "env_task": "swingup",
     "seed": 1,
     "frame-skip": 8,
 
     # Parameter for running RL
     "replay_buffer_size": 10 ** 6,
     "sample_batch_size": 128,
-    "episodes": 1000,
+    "episodes": 500,
     "max_steps": 250,
     # Hyperparameter-tuning
-    "max_evals": 1,
+    "max_evals": 5,
 
     # ID of the GPU to use
     "gpu_device": "0",
 
     #alpha
-    "init_alpha": 0.5,
-    "alpha_lr": 1e-4,
+    "init_alpha": 0.496,
+    "alpha_lr": 1e-3,
     "alpha_beta": 0.9,
     "alpha_decay_deactivate": False,
 
     # Initial sampling
-    "init_rounds": 40,
+    # Number of rounds which are sampled random
+    "init_rounds": -1,
     "num_updates": 1
 }
 
 # HYPERPARAMETER training.
 hyperparameter_space = {
-    "hyperparmeter_round": "swingup_version2_",
+    "hyperparmeter_round": "swingup_version3_",
     # "init_alpha": hp.quniform('init_alpha', 0, 0.1, 0.01),
     # "gamma": hp.quniform('gamma', 0.9, 0.99, 0.01),
     # "tau": hp.quniform('tau', 0.01, 0.1, 0.001),
@@ -91,3 +92,6 @@ from SAC_Implementation import train
 # START training. Set Max Eval to 1 to just train one episode.
 train.prepare_hyperparameter_tuning({**args, **hyperparameter_space},
                                     max_evals=args['max_evals'])
+
+##
+

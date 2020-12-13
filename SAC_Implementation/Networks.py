@@ -39,7 +39,7 @@ class SoftQNetwork(nn.Module):
     ):
         super(SoftQNetwork, self).__init__()
         self.linear1 = nn.Linear(state_dim + action_dim, hidden_dim)
-        self.hidden_layer = []
+        self.hidden_layer = nn.ModuleList()
 
         self.device = torch.device(f'cuda:{gpu_device}' if torch.cuda.is_available() else 'cpu')
 
@@ -103,7 +103,7 @@ class PolicyNetwork(nn.Module):
 
         self.device = torch.device(f'cuda:{gpu_device}' if torch.cuda.is_available() else 'cpu')
 
-        self.hidden_layer = []
+        self.hidden_layer = nn.ModuleList()
         for i in range(hidden_layers):
             self.hidden_layer.append(nn.Linear(hidden_dim, hidden_dim).to(self.device))
 
@@ -112,10 +112,10 @@ class PolicyNetwork(nn.Module):
         # self.mean_linear.bias.data.uniform_(-init_w, init_w)
 
         self.log_std_linear = nn.Linear(hidden_dim, action_dim)
-        self.apply(weight_init)
         # self.log_std_linear.weight.data.uniform_(-init_w, init_w)
         # self.log_std_linear.bias.data.uniform_(-init_w, init_w)
 
+        self.apply(weight_init)
         #self.optimizer = Ranger(self.parameters(), lr=lr_policy)
         #self.optimizer = optim.RMSprop(self.parameters(), lr=lr_policy)
         self.optimizer = optim.Adam(self.parameters(), lr=lr_policy)
