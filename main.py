@@ -28,42 +28,42 @@ parameter = {
     "log_file": f"{DEFAULT_LOG_DIR}/{DEFAULT_LOG_FILE}",
     # video
     "save_video": False,
-    "recording_interval": 500,
+    "recording_interval": 100,
 
     # Neural Network stuff
-    "hidden_dim": 256,
+    "hidden_dim": 512,
     "lr-actor": 5e-4,
     "lr-critic": 1e-3,
 
     "policy_hidden_layers": 1,
-    "q_hidden_layers": 2,
+    "q_hidden_layers": 1,
 
     # Parameter for RL
     "gamma": 0.98,
-    "alpha": 1e-2,
+    "alpha": 0.01,
     "tau": 0.01,  # for target network soft update,
 
     # Environment
     "env_domain": "cartpole",
-    "env_task": "swingup",
+    "env_task": "balance",
     "seed": 1,
     "frame-skip": 8,
 
     # Parameter for running RL
     "replay_buffer_size": 10 ** 6,
     "sample_batch_size": 128,
-    "episodes": 500,
-    "max_steps": 250,
+    "episodes": 1000,
+    "max_steps": 128,
     # Hyperparameter-tuning
-    "max_evals": 5,
+    "max_evals": 4,
 
     # ID of the GPU to use
     "gpu_device": "0",
 
     #alpha
-    "init_alpha": 0.496,
-    "alpha_lr": 1e-3,
-    "alpha_beta": 0.9,
+    "init_alpha": 0.5,
+    "alpha_lr": 1e-4,
+    "alpha_beta": 0.5,
     "alpha_decay_deactivate": False,
 
     # Initial sampling
@@ -74,10 +74,10 @@ parameter = {
 
 # HYPERPARAMETER training.
 hyperparameter_space = {
-    "hyperparmeter_round": "swingup_version3_",
+    "hyperparmeter_round": "cartpole_balance_tau_",
     # "init_alpha": hp.quniform('init_alpha', 0, 0.1, 0.01),
     # "gamma": hp.quniform('gamma', 0.9, 0.99, 0.01),
-    # "tau": hp.quniform('tau', 0.01, 0.1, 0.001),
+    "tau": hp.choice('tau', [0.01, 0.1, 0.001, 0.00001]),
     # "hidden_dim": hp.choice('hidden_dim', [512, 1024, 2048]),
 }
 

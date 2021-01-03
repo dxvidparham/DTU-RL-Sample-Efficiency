@@ -192,16 +192,16 @@ def run_sac(hyperparameter_space: dict) -> Dict:
             if reward_velocity > 15:
                 max_reward = np.inf
                 logging.error(f"TOO often the policy got bad: {reward_velocity}")
-                break
+                #break
 
             if avg_qloss > 10000:
                 max_reward = np.inf
                 logging.error(f"ABORT DUE TO TOO HIGH QLOSS: {avg_qloss}")
-                break
+                # break
             if avg_ploss > 10000:
                 max_reward = np.inf
                 logging.error(f"ABORT DUE TO TOO HIGH POLICY LOSS: {avg_ploss}")
-                break
+                # break
 
     except KeyboardInterrupt as e:
         logging.error("KEYBOARD INTERRUPT")

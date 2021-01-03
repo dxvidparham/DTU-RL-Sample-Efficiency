@@ -150,16 +150,17 @@ class SACAlgorithm:
         policy_loss.backward()
         self.policy.optimizer.step()
 
-        alpha_applied = deepcopy(self.log_alpha).exp()
-
         if self.alpha_decay_activated:
+            alpha_applied = deepcopy(self.log_alpha).exp()
             self.log_alpha_optimizer.zero_grad()
-            alpha_loss = (self.log_alpha *
-                          (-log_pi - self.target_entropy).detach()).mean()
+            alpha_loss = (self.log_alpha * (-log_pi - self.target_entropy).detach()).mean()
+
+            # logging.warning(f"{alpha_loss} | {self.log_alpha.mean()} * -{log_pi.mean()} - {self.target_entropy.mean()}")
             alpha_loss.backward()
             self.log_alpha_optimizer.step()
         else:
             alpha_loss = 0
+            alpha_applied = self.alpha
 
         return policy_loss.item(), alpha_applied  # alpha_loss
 
@@ -195,6 +196,7 @@ class SACAlgorithm:
         if step % 2 == 0:
             policy_loss, alpha_loss = self._update_policy_alpha(state)
 
+        # if step % 200 == 0:
         self.soft_q1_targets.update_params(self.soft_q1.parameters(), self.tau)
         self.soft_q2_targets.update_params(self.soft_q2.parameters(), self.tau)
 
