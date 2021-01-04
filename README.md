@@ -5,6 +5,6 @@ It contains an implementation of the state-of-the-art reinforcement algorithm SA
 
 Further information on the algorithm, the implementation, and the experiments conducted for this project see the notebook and the report in this reporsitory.
 
-To run the program one need
+To run the program one needs to run the main.py file with a GPU. It's is possible to change hyperparameters by defining flags. 
 
 
