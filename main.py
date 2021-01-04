@@ -44,24 +44,24 @@ parameter = {
     "tau": 0.01,  # for target network soft update,
 
     # Environment
-    "env_domain": "cartpole",
-    "env_task": "balance",
+    "env_domain": "ball_in_cup",
+    "env_task": "catch",
     "seed": 1,
-    "frame-skip": 8,
+    "frame-skip": 4,
 
     # Parameter for running RL
     "replay_buffer_size": 10 ** 6,
     "sample_batch_size": 128,
-    "episodes": 1000,
+    "episodes": 300,
     "max_steps": 128,
     # Hyperparameter-tuning
-    "max_evals": 4,
+    "max_evals": 5,
 
     # ID of the GPU to use
     "gpu_device": "0",
 
     #alpha
-    "init_alpha": 0.5,
+    "init_alpha": 0.1,
     "alpha_lr": 1e-4,
     "alpha_beta": 0.5,
     "alpha_decay_deactivate": False,
@@ -74,10 +74,10 @@ parameter = {
 
 # HYPERPARAMETER training.
 hyperparameter_space = {
-    "hyperparmeter_round": "cartpole_balance_tau_",
-    # "init_alpha": hp.quniform('init_alpha', 0, 0.1, 0.01),
-    # "gamma": hp.quniform('gamma', 0.9, 0.99, 0.01),
-    "tau": hp.choice('tau', [0.01, 0.1, 0.001, 0.00001]),
+    "hyperparmeter_round": "ball_in_cup_init_alpha_",
+    "init_alpha": hp.quniform('init_alpha', 0, 0.5, 0.01),
+    #"tau": hp.quniform('tau', 0.005, 0.3, 0.01),
+    #"tau": hp.choice('tau', 0.01, 0.03, 0.005, 0.05, 0.1]),
     # "hidden_dim": hp.choice('hidden_dim', [512, 1024, 2048]),
 }
 

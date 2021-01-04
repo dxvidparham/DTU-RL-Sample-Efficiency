@@ -71,7 +71,7 @@ def load_and_display_model(dir="hp_trials", filename="FILENAME", parameter=['env
         date_now = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         filename = f"{'_'.join(parameter)}_{what}_{date_now}"
         if save:
-            plt.savefig(f'hp_figures/{filename}.png')
+            plt.savefig(f'hp_figures/{filename}.pdf')
             print(f"File saved to {filename}")
         plt.show()
 
